@@ -1,0 +1,315 @@
+import InventoryBatch from '../models/InventoryBatch.js';
+import BranchProduct from '../models/BranchProduct.js';
+import Product from '../models/Product.js';
+import Category from '../models/Category.js';
+import Supplier from '../models/Supplier.js';
+import Branch from '../models/Branch.js';
+import Promotion from '../models/Promotion.js';
+
+const buildQuery = (req) => {
+  const q = {};
+  if (req.query?.branch_product_id) q.branch_product_id = req.query.branch_product_id;
+  if (req.query?.batch_code) q.batch_code = req.query.batch_code;
+  if (req.query?.supplier_id) q.supplier_id = req.query.supplier_id;
+  if (req.query?.import_receipt_id) q.import_receipt_id = req.query.import_receipt_id;
+  if (req.query?.exp_from || req.query?.exp_to) {
+    q.exp_date = {};
+    if (req.query.exp_from) q.exp_date.$gte = new Date(req.query.exp_from);
+    if (req.query.exp_to) q.exp_date.$lte = new Date(req.query.exp_to);
+  }
+  return q;
+};
+
+// Helper: enrich batches with product, category, supplier, branch info
+const enrichBatches = async (batches) => {
+  if (!batches || batches.length === 0) return [];
+
+  const bpIds = [...new Set(batches.map((b) => String(b.branch_product_id)).filter(Boolean))];
+  const supplierIds = [...new Set(batches.map((b) => String(b.supplier_id)).filter(Boolean))];
+
+  // Load branch products
+  const bpDocs = await BranchProduct.find({ _id: { $in: bpIds } }).lean();
+  const bpMap = {};
+  bpDocs.forEach((bp) => { bpMap[String(bp._id)] = bp; });
+
+  // Extract product_ids and branch_ids
+  const productIds = [...new Set(bpDocs.map((bp) => String(bp.product_id)).filter(Boolean))];
+  const branchIds = [...new Set(bpDocs.map((bp) => String(bp.branch_id)).filter(Boolean))];
+
+  // Load products, branches, suppliers in parallel
+  const [productDocs, branchDocs, supplierDocs] = await Promise.all([
+    Product.find({ _id: { $in: productIds } }).lean(),
+    Branch.find({ _id: { $in: branchIds } }).lean(),
+    supplierIds.length > 0 ? Supplier.find({ _id: { $in: supplierIds } }).lean() : Promise.resolve([]),
+  ]);
+
+  const productMap = {};
+  productDocs.forEach((p) => { productMap[String(p._id)] = p; });
+
+  const branchMap = {};
+  branchDocs.forEach((b) => { branchMap[String(b._id)] = b; });
+
+  const supplierMap = {};
+  supplierDocs.forEach((s) => { supplierMap[String(s._id)] = s; });
+
+  // Extract category_ids from products
+  const categoryIds = [...new Set(productDocs.map((p) => String(p.category_id)).filter((id) => id && id !== 'null'))];
+  const categoryDocs = categoryIds.length > 0 ? await Category.find({ _id: { $in: categoryIds } }).lean() : [];
+  const categoryMap = {};
+  categoryDocs.forEach((c) => { categoryMap[String(c._id)] = c; });
+
+  const now = new Date();
+
+  return batches.map((batch) => {
+    const batchObj = batch.toObject ? batch.toObject() : { ...batch };
+    const bp = bpMap[String(batchObj.branch_product_id)] || {};
+    const product = productMap[String(bp.product_id)] || {};
+    const branch = branchMap[String(bp.branch_id)] || {};
+    const supplier = supplierMap[String(batchObj.supplier_id)] || {};
+    const category = categoryMap[String(product.category_id)] || {};
+
+    // Expiry calculation
+    let days_until_expiry = null;
+    let expiry_status = 'ok';
+    if (batchObj.exp_date) {
+      const expDate = new Date(batchObj.exp_date);
+      const diffMs = expDate.getTime() - now.getTime();
+      days_until_expiry = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (days_until_expiry < 0) expiry_status = 'expired';
+      else if (days_until_expiry <= 7) expiry_status = 'critical';
+      else if (days_until_expiry <= 30) expiry_status = 'warning';
+    }
+
+    // Badges
+    const badges = [];
+    if (category.name) badges.push({ type: 'category', text: category.name, color: 'blue' });
+    if (expiry_status === 'expired') badges.push({ type: 'expiry', text: 'Hết hạn', color: 'red' });
+    else if (expiry_status === 'critical') badges.push({ type: 'expiry', text: 'Sắp hết hạn', color: 'orange' });
+    else if (expiry_status === 'warning') badges.push({ type: 'expiry', text: `Còn ${days_until_expiry} ngày`, color: 'yellow' });
+    if (bp.stock <= (bp.min_stock || 5)) badges.push({ type: 'stock', text: 'Tồn kho thấp', color: 'red' });
+    if ((bp.sold_count || 0) >= 100) badges.push({ type: 'sales', text: 'Best seller', color: 'green' });
+
+    return {
+      ...batchObj,
+      // Product info
+      product_id: String(bp.product_id || ''),
+      product_name: product.name || '',
+      sku: product.sku || '',
+      master_id: String(product._id || ''),
+      product_thumbnail: product.thumbnail || '',
+      product_price: product.price || 0,
+      product_original_price: product.original_price || 0,
+      // Category info
+      category_id: String(product.category_id || ''),
+      category_name: category.name || '',
+      // Supplier info
+      supplier_id: String(batchObj.supplier_id || ''),
+      supplier_name: supplier.name || '',
+      supplier_code: supplier.code || '',
+      // Branch info
+      branch_id: String(bp.branch_id || ''),
+      branch_name: branch.name || '',
+      // Branch product info
+      bp_stock: bp.stock || 0,
+      bp_sold_count: bp.sold_count || 0,
+      bp_price: bp.price || 0,
+      bp_original_price: bp.original_price || 0,
+      bp_is_available: bp.is_available !== false,
+      bp_min_stock: bp.min_stock || 0,
+      // Expiry info
+      days_until_expiry,
+      expiry_status,
+      // Badges
+      badges,
+    };
+  });
+};
+
+export const list = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 50)));
+    const query = buildQuery(req);
+
+    const [total, rawData] = await Promise.all([
+      InventoryBatch.countDocuments(query),
+      InventoryBatch.find(query)
+        .sort({ exp_date: 1, received_date: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+    ]);
+
+    const data = await enrichBatches(rawData);
+
+    return res.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const detail = async (req, res) => {
+  try {
+    const item = await InventoryBatch.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Inventory batch not found' });
+    const enriched = await enrichBatches([item]);
+    return res.json({ success: true, data: enriched[0] || item });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const create = async (req, res) => {
+  try {
+    const payload = req.body || {};
+    if (!payload.branch_product_id) {
+      return res.status(400).json({ success: false, message: 'branch_product_id is required' });
+    }
+
+    const bp = await BranchProduct.findById(payload.branch_product_id);
+    if (!bp) return res.status(404).json({ success: false, message: 'Branch product not found' });
+
+    const qty = Number(payload.quantity || 0);
+    if (qty <= 0) return res.status(400).json({ success: false, message: 'quantity must be > 0' });
+
+    const batch = await InventoryBatch.create({
+      branch_product_id: payload.branch_product_id,
+      batch_code: payload.batch_code || `LOT-${Date.now().toString(36).toUpperCase()}`,
+      quantity: qty,
+      exp_date: payload.exp_date || null,
+      received_date: payload.received_date || new Date(),
+      cost_price: Number(payload.cost_price || 0),
+      supplier_id: payload.supplier_id || null,
+      purchase_order_id: payload.purchase_order_id || null,
+      import_receipt_id: payload.import_receipt_id || null,
+    });
+
+    bp.stock = Number(bp.stock || 0) + qty;
+    await bp.save();
+
+    return res.status(201).json({ success: true, data: batch, message: 'Inventory batch created' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const update = async (req, res) => {
+  try {
+    const item = await InventoryBatch.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, message: 'Inventory batch not found' });
+
+    const updates = { ...req.body };
+    delete updates._id;
+    const updated = await InventoryBatch.findByIdAndUpdate(req.params.id, updates, { new: true });
+    return res.json({ success: true, data: updated, message: 'Inventory batch updated' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const lowStockAlerts = async (_req, res) => {
+  try {
+    const data = await BranchProduct.find({
+      is_available: true,
+      $expr: { $lte: ['$stock', '$min_stock'] },
+    }).sort({ stock: 1 }).limit(200);
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const expiringAlerts = async (req, res) => {
+  try {
+    const days = Math.max(1, Number(req.query.days || 30));
+    const until = new Date();
+    until.setDate(until.getDate() + days);
+
+    const rawData = await InventoryBatch.find({
+      quantity: { $gt: 0 },
+      exp_date: { $ne: null, $lte: until },
+    }).sort({ exp_date: 1 }).limit(500);
+
+    const data = await enrichBatches(rawData);
+
+    return res.json({ success: true, data, meta: { days } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/inventory-batches/draft-promotion
+// Creates a draft promotion from stock alert data - DOES NOT auto-publish
+export const draftPromotionFromAlert = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      type = 'percent',
+      discount_value = 50,
+      scope = 'product',
+      target_product_ids = [],
+      target_category_ids = [],
+      target_branch_ids = [],
+      start_date,
+      end_date,
+      total_quantity,
+      per_user_limit,
+      badge_text = '',
+      min_quantity = 0,
+      gift_quantity = 0,
+      source = 'expiry_alert',
+      is_auto_generated = true,
+    } = req.body || {};
+
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Tên khuyến mãi là bắt buộc' });
+    }
+
+    const promoData = {
+      title,
+      description: description || '',
+      type,
+      discount_value: Number(discount_value) || 0,
+      scope,
+      target_product_ids: Array.isArray(target_product_ids) ? target_product_ids : [],
+      target_category_ids: Array.isArray(target_category_ids) ? target_category_ids : [],
+      target_branch_ids: Array.isArray(target_branch_ids) ? target_branch_ids : [],
+      start_date: start_date ? new Date(start_date) : new Date(),
+      end_date: end_date ? new Date(end_date) : null,
+      total_quantity: total_quantity ? Number(total_quantity) : null,
+      usage_per_user: per_user_limit ? Number(per_user_limit) : 1,
+      badge_text: badge_text || '',
+      min_quantity: Number(min_quantity) || 0,
+      gift_quantity: Number(gift_quantity) || 0,
+      source: source || 'expiry_alert',
+      is_auto_generated: Boolean(is_auto_generated),
+      // CRITICAL: Always create as draft, never auto-publish
+      status: 'draft',
+      is_active: false,
+      claimed_count: 0,
+      usage_count: 0,
+      priority: 0,
+      created_by: req.user?._id || req.user?.id || null,
+    };
+
+    const promotion = await Promotion.create(promoData);
+
+    return res.status(201).json({
+      success: true,
+      data: promotion,
+      message: 'Đã tạo nháp khuyến mãi từ cảnh báo kho. Vui lòng xác nhận để kích hoạt.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

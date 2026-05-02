@@ -1,0 +1,193 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAppDispatch } from '../../store';
+import { logout } from '../../slices/authSlice';
+import type { User } from '../../types';
+
+interface AccountSidebarProps {
+  currentUser: User;
+  activeRoute?: string;
+  onNavigate?: (path: string) => void;
+  compact?: boolean;
+}
+
+const AccountSidebar: React.FC<AccountSidebarProps> = ({ 
+  currentUser, 
+  activeRoute, 
+  onNavigate,
+  compact = false 
+}) => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem('account_sidebar_collapsed') === 'true';
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('account_sidebar_collapsed', String(collapsed));
+  }, [collapsed]);
+
+  const handleLogout = useCallback(() => {
+    dispatch(logout());
+    navigate('/login');
+    if (onNavigate) onNavigate('/login');
+  }, [dispatch, navigate, onNavigate]);
+
+  const handleNavClick = useCallback((path: string) => {
+    if (onNavigate) onNavigate(path);
+    setMobileOpen(false);
+  }, [onNavigate]);
+
+  const currentPath = activeRoute || location.pathname;
+
+  const NavItem = useCallback(({ to, icon, label, exact = false }: { to: string, icon: string, label: string, exact?: boolean }) => {
+    const isActive = exact ? currentPath === to : currentPath.includes(to);
+    const activeClass = isActive 
+      ? 'bg-primary/10 text-primary font-bold' 
+      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800';
+    const isShrunk = compact || collapsed;
+
+    return (
+       <Link
+          to={to}
+          onClick={() => handleNavClick(to)}
+          className={`flex items-center ${isShrunk ? 'justify-center px-0' : 'gap-3 px-4'} py-3 rounded-xl transition-all ${activeClass}`}
+          title={isShrunk ? label : undefined}
+          data-route={to}
+        >
+          <span className={`material-symbols-outlined ${isActive ? 'fill-1' : ''}`}>{icon}</span>
+          {!isShrunk && <span>{label}</span>}
+        </Link>
+    );
+  }, [currentPath, compact, collapsed, handleNavClick]);
+
+  const isShrunk = compact || collapsed;
+
+  return (
+    <>
+      {/* Mobile Toggle Button */}
+      {/* This renders above the layout if we place it properly, but AccountLayout handles mobile toggle usually. 
+          The prompt asks for 'collapse to hamburger: show a toggle button that opens off-canvas panel (same markup / styles).' */}
+      
+      {/* Mobile Off-canvas Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Hamburger button for mobile (if not opened via layout) */}
+      <div className="md:hidden flex items-center p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
+        <button 
+           onClick={() => setMobileOpen(true)}
+           className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl mr-3"
+           aria-label="Mở menu tài khoản"
+        >
+           <span className="material-symbols-outlined">menu</span>
+        </button>
+        <h2 className="font-bold text-lg">Tài khoản của tôi</h2>
+      </div>
+
+      <aside 
+        className={`
+          bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 
+          flex flex-col p-6 h-[100dvh] top-0 shrink-0
+          transition-transform duration-300 ease-in-out relative
+          ${isShrunk ? 'w-24' : 'w-72'}
+          
+          /* Mobile behavior using fixed positioning */
+          fixed md:sticky z-50 md:z-auto
+          ${mobileOpen ? 'left-0 translate-x-0' : '-left-full -translate-x-full md:left-auto md:translate-x-0'}
+        `}
+      >
+        <button 
+           onClick={() => setMobileOpen(false)}
+           className="md:hidden absolute top-4 right-4 p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+           title="Đóng"
+        >
+           <span className="material-symbols-outlined">close</span>
+        </button>
+
+        <div className={`flex items-center ${isShrunk ? 'justify-center' : 'gap-3 px-2'} mb-10`}>
+          <div className="bg-primary rounded-xl p-2 shrink-0">
+            <span className="material-symbols-outlined text-white">shopping_cart</span>
+          </div>
+          {!isShrunk && <h2 className="text-xl font-bold text-primary italic">LOTTE Mart</h2>}
+        </div>
+
+        {!isShrunk ? (
+          <div className="flex flex-col items-center mb-6 px-2 text-center">
+              <img 
+                 src={currentUser.avatar || "https://i.pravatar.cc/100?img=12"} 
+                 alt={currentUser.full_name || currentUser.username} 
+                 className="w-20 h-20 rounded-full mb-3 border-2 border-primary/20 object-cover" 
+              />
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1">{currentUser.full_name || currentUser.username}</h3>
+              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 mt-2">
+                <span className="material-symbols-outlined text-[14px] fill-1">stars</span>
+                {currentUser.membership_level}
+              </span>
+              <div className="flex gap-2 mt-4 w-full">
+                <Link to="/account" className="flex-1 py-1.5 px-2 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Hồ sơ</Link>
+                <Link to="/account/settings" className="flex-1 py-1.5 px-2 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Cài đặt</Link>
+              </div>
+          </div>
+        ) : (
+           <div className="flex justify-center mb-8">
+              <img 
+                 src={currentUser.avatar || "https://i.pravatar.cc/100?img=12"} 
+                 alt={currentUser.full_name || currentUser.username} 
+                 className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover" 
+                 title={currentUser.full_name || currentUser.username}
+              />
+           </div>
+        )}
+
+        <nav className="flex-1 space-y-1 w-full" role="navigation" aria-label="Account Sidebar Navigation">
+          <NavItem to="/account" icon="dashboard" label="Tổng quan" exact />
+          <NavItem to="/account/orders" icon="shopping_bag" label="Đơn hàng" />
+          <NavItem to="/account/returns" icon="assignment_return" label="Đổi trả" />
+          <NavItem to="/account/wishlist" icon="favorite" label="Yêu thích" />
+          <NavItem to="/account/viewed-history" icon="history" label="Đã xem" />
+          <NavItem to="/account/addresses" icon="location_on" label="Địa chỉ" />
+          <NavItem to="/account/payments" icon="credit_card" label="Thanh toán" />
+          <NavItem to="/account/coupons" icon="sell" label="Mã giảm giá" />
+          <NavItem to="/account/loyalty" icon="military_tech" label="Điểm thưởng" />
+          <NavItem to="/account/notifications" icon="notifications" label="Thông báo" />
+          <NavItem to="/account/reviews" icon="star" label="Đánh giá" />
+          <NavItem to="/account/support" icon="chat_bubble" label="Hỗ trợ" />
+          <NavItem to="/account/settings" icon="settings" label="Cài đặt" />
+        </nav>
+
+        <button 
+          onClick={handleLogout}
+          className={`flex items-center justify-center ${isShrunk ? 'px-0 border-none' : 'gap-2 px-4 border'} mt-auto w-full py-3 rounded-xl border-primary/20 text-primary font-bold hover:bg-primary/5 transition-colors`}
+          title="Đăng xuất"
+        >
+          <span className="material-symbols-outlined">logout</span>
+          {!isShrunk && <span>Đăng xuất</span>}
+        </button>
+
+        {/* Desktop Collapse Toggle */}
+        {!compact && (
+          <button 
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden md:flex absolute -right-3 top-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 rounded-full p-1 shadow-sm hover:text-primary z-50 hover:bg-slate-50 transition-colors"
+            title={collapsed ? "Mở rộng" : "Thu gọn"}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {collapsed ? 'chevron_right' : 'chevron_left'}
+            </span>
+          </button>
+        )}
+      </aside>
+    </>
+  );
+};
+
+export default AccountSidebar;

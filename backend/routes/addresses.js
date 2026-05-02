@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { auth } from '../middlewares/auth.js';
+import * as c from '../controllers/addressController.js';
+const router = Router();
+router.get('/', auth, c.list);
+router.post('/', auth, c.create);
+router.put('/:id', auth, c.update);
+router.delete('/:id', auth, c.remove);
+router.put('/:id/default', auth, c.setDefault);
+export default router;

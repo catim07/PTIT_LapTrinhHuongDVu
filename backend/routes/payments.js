@@ -1,0 +1,19 @@
+import { Router } from 'express';
+import { auth, admin } from '../middlewares/auth.js';
+import * as c from '../controllers/paymentController.js';
+const router = Router();
+router.get('/methods', auth, c.methods);
+router.post('/methods', auth, c.addMethod);
+router.put('/methods/:id', auth, c.updateMethod);
+router.delete('/methods/:id', auth, c.deleteMethod);
+router.put('/methods/:id/default', auth, c.setDefault);
+router.post('/process', auth, c.process);
+router.get('/transactions', auth, c.transactions);
+router.get('/providers', c.providers);
+router.put('/providers', auth, admin, c.updateProviders);
+router.get('/:id/status', c.status);
+router.post('/:id/confirm', auth, c.confirm);
+router.post('/:id/fail', auth, c.fail);
+router.post('/:id/cancel', auth, c.cancelPayment);
+export default router;
+

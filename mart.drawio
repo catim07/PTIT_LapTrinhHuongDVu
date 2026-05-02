@@ -1,0 +1,463 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.16 Chrome/132.0.6834.196 Electron/34.2.0 Safari/537.36" version="26.0.16" pages="4">
+  <diagram name="1-Core Auth Catalog Order" id="SSmzwfWHVoXtvi5pT50F">
+    <mxGraphModel dx="1500" dy="1024" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-1" value="Core User / Auth / Catalog / Order" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#111827;fontColor=#ffffff;strokeColor=#111827;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry width="860" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-2" value="Legend:&#xa;PK = Primary Key&#xa;FK = Foreign Key&#xa;UQ = Unique&#xa;OPT = Optional&#xa;DEF(x) = Default&#xa;IDX(...) = Index&#xa;Tags: [snapshot], [denorm], [computed], [legacy], [mixed], [ambiguous], [observed-in-db], [frontend-used], [alias]" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry y="104" width="1680" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-3" value="Role&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;key:String [req,UQ]&#xa;name:String [req]&#xa;description:String OPT DEF(&#39;&#39;)&#xa;role_id:Number OPT [legacy]&#xa;permissions:[String] DEF([]) [denorm FK-&gt;Permission.key]&#xa;is_system:Boolean DEF(false)&#xa;is_active:Boolean DEF(true)&#xa;created_at, updated_at&#xa;IDX key&#xa;IDX role_id" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#dbeafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="520" y="388.99999999999966" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-4" value="Permission&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;key:String [req,UQ]&#xa;label:String OPT DEF(&#39;&#39;)&#xa;group:String DEF(&#39;general&#39;)&#xa;description:String OPT&#xa;is_active:Boolean DEF(true)&#xa;created_at, updated_at&#xa;IDX key&#xa;IDX (group,key)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#dbeafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry y="388.99999999999966" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-5" value="User&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;username:String [req]&#xa;full_name:String OPT&#xa;email:String OPT [UQ partial index]&#xa;phone:String OPT&#xa;password_hash:String OPT&#xa;avatar:String OPT&#xa;role_id:Number DEF(3) [legacy alias role]&#xa;role_key:String OPT [alias]&#xa;permissions:[String] DEF([]) [denorm]&#xa;branch_id:Mixed OPT FK-&gt;Branch&#xa;lotte_points:Number DEF(0) [computed]&#xa;membership_level:String DEF(&#39;Dong&#39;)&#xa;signup_method, login_provider&#xa;googleId, facebookId, facebook_id [legacy], social_providers[]&#xa;status:String DEF(ACTIVE), is_active:Boolean DEF(true)&#xa;profile_completed:Boolean DEF(false) [computed]&#xa;wallet_balance:Number DEF(0) [computed]&#xa;default_payment_method:{type,last4,brand,card_id} [snapshot]&#xa;email_verified + otp fields&#xa;preferences{}, security{}, settings{}&#xa;last_login_at, refresh_token&#xa;created_at, updated_at&#xa;IDX partial unique(email)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#dcfce7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="497.4999999999998" width="420" height="372" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-6" value="Address&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req,index]-&gt;User&#xa;name:String [req]&#xa;phone:String OPT&#xa;street, ward, district, city:String&#xa;full_address:String [denorm]&#xa;is_default:Boolean DEF(false)&#xa;label:String DEF(home)&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#dcfce7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1771.5" y="526.9999999999998" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-7" value="Category&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req]&#xa;slug:String OPT&#xa;icon,image,banner:String OPT&#xa;description:String OPT&#xa;parent_id:Mixed OPT FK-&gt;Category&#xa;sort_order:Number DEF(0)&#xa;display_order:Number DEF(0) [alias/split]&#xa;is_active:Boolean DEF(true)&#xa;product_count:Number DEF(0) [computed]&#xa;created_by:Mixed OPT FK-&gt;User&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef3c7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry y="726.9999999999998" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-8" value="Product&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req], slug:String&#xa;description, short_description&#xa;eco_label:Mixed [ambiguous]&#xa;FK category_id:Mixed -&gt;Category&#xa;category_name:String [denorm]&#xa;FK supplier_id:Mixed -&gt;Supplier&#xa;supplier_name:String [denorm]&#xa;master_id:String [legacy]&#xa;brand, origin, origin_country [alias], origin_flag&#xa;unit, weight, barcode, sku&#xa;price:Number [req], original_price, import_price, discount_percent&#xa;images[], gallery[], ar_model_url, thumbnail&#xa;tags[], vat_included, shipping_excluded&#xa;is_active, is_featured, is_best_seller, is_new&#xa;rating, review_count, total_reviews [legacy alias average_rating]&#xa;rating_breakdown:Mixed [computed]&#xa;stock, sold_count [computed/denorm]&#xa;manufacture_date, expiry_date, batch_code, is_expiring_soon, is_expired&#xa;highlights[], product_details[], specifications:Mixed&#xa;nutrition_info:Mixed, usage_guide, storage_instructions, storage_guide [alias]&#xa;notes, recipe_suggestions[]&#xa;related_product_ids[], frequently_bought_together[]&#xa;created_by:Mixed FK-&gt;User, created_at, updated_at&#xa;IDX text(name,description,brand)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef3c7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="520" y="638.9999999999997" width="420" height="386" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-9" value="Branch&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req]&#xa;address, city, phone, manager:String&#xa;is_active:Boolean DEF(true)&#xa;operating_hours:String DEF(08:00-22:00)&#xa;opening_hours:String [frontend-used alias observed]&#xa;coordinates:{lat,lng}&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef3c7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="520" y="1065" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-10" value="BranchProduct&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK product_id:Mixed [req]-&gt;Product&#xa;FK branch_id:Mixed [req]-&gt;Branch&#xa;master_id, sku [legacy]&#xa;category_id, category_name [snapshot]&#xa;supplier_id, supplier_name [snapshot]&#xa;price, original_price, import_price, discount_percent&#xa;stock, min_stock, max_purchase_limit&#xa;is_available:Boolean DEF(true)&#xa;sold_count:Number DEF(0) [computed]&#xa;manufacture_date, expiry_date, batch_code&#xa;is_expiring_soon, is_expired&#xa;promotion_tag, promotion_end_date&#xa;created_at, updated_at&#xa;[observed-in-db/frontend-used] badges[], policies{}, lead_time_days, status, last_updated (not schema)&#xa;NOTE: Drift: badges/policies/status/last_updated are used in frontend and API payload but not defined in schema." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef3c7;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="899.4999999999998" width="420" height="272" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-11" value="Cart&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:ObjectId [req]-&gt;User&#xa;FK branch_id:String [req]-&gt;Branch&#xa;items[]:&#xa;  - FK branch_product_id:Mixed [req]-&gt;BranchProduct&#xa;  - quantity:Number DEF(1)&#xa;  - price:Number DEF(0) [snapshot]&#xa;  - unit_price:Number DEF(0) [snapshot]&#xa;  - product_name, product_image [snapshot]&#xa;created_at, updated_at&#xa;IDX UQ(user_id,branch_id)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e0f2fe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1771.5" y="776.9999999999998" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-12" value="Order&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req]-&gt;User&#xa;items[] (OrderItem snapshot):&#xa;  branch_product_id, product_id, product_name, product_image, sku&#xa;  category_name, supplier_name, expiry_date&#xa;  quantity, price, original_price, unit_price, final_price&#xa;  discount_amount, discount_applied, discount [legacy], is_gift&#xa;order_address:{receiver_name,phone,full_address,city,district,ward,note}&#xa;status enum(PENDING..RETURNED)&#xa;subtotal, shipping_fee, discount_amount, total_amount&#xa;coupon_code, points_earned&#xa;payment:{method,status,transaction_id}&#xa;tracking:{tracking_number,carrier,estimated_delivery,history[]}&#xa;delivery_slot:Mixed FK-&gt;DeliverySlot&#xa;branch_id, branch_name&#xa;pricing_breakdown{subtotal,item_discounts,promotion_discount,coupon_discount,shipping_fee,free_shipping_applied,points_earned,final_total}&#xa;applied_promotions[], applied_coupon{}, gift_items[]&#xa;note, generated_invoice_url&#xa;email_notification_status/sent_at/error&#xa;created_at, updated_at&#xa;IDX (user_id,status,created_at)&#xa;[frontend-used/observed] payment_method, payment_status, payment_transaction_id, vat_percent, vat_amount, tax_amount, is_pickup, qr_code_url, delivery_type, shipping_provider&#xa;NOTE: Order keeps many denormalized snapshots for auditability; legacy flat payment/tax aliases still used by frontend." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e0f2fe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="1026.9999999999998" width="420" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-13" value="ProductQuestion&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK product_id:Mixed [req]-&gt;Product&#xa;FK user_id:Mixed [req]-&gt;User&#xa;user_name:String [snapshot]&#xa;question:String [req]&#xa;status:String DEF(pending) enum(pending,answered,hidden)&#xa;answer:{content,admin_id,admin_name,answered_at}&#xa;created_at, updated_at&#xa;IDX product_id, user_id, status" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#f5f3ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1771.5" y="276.9999999999998" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-14" value="1-N role assignment" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-3" target="_UJ83jsw6JJzsuaWNcb1-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="952" y="498.99999999999966" />
+              <mxPoint x="1028" y="683.4999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-15" value="N-N via permissions[] keys" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-4" target="_UJ83jsw6JJzsuaWNcb1-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="432" y="498.99999999999966" />
+              <mxPoint x="508" y="498.99999999999966" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-16" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-5" target="_UJ83jsw6JJzsuaWNcb1-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1474" y="638.2499999999998" />
+              <mxPoint x="1548" y="636.9999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-17" value="1-N (by branch)" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-5" target="_UJ83jsw6JJzsuaWNcb1-11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1474" y="728.7499999999998" />
+              <mxPoint x="1548" y="834.4999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-18" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-5" target="_UJ83jsw6JJzsuaWNcb1-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1472" y="819.2499999999998" />
+              <mxPoint x="1548" y="1091.9999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-19" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-5" target="_UJ83jsw6JJzsuaWNcb1-13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1472" y="547.7499999999998" />
+              <mxPoint x="1548" y="439.4999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-20" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-7" target="_UJ83jsw6JJzsuaWNcb1-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="432" y="836.9999999999998" />
+              <mxPoint x="508" y="836.9999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-21" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-9" target="_UJ83jsw6JJzsuaWNcb1-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="952" y="1122.5" />
+              <mxPoint x="1028" y="1104.7499999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-22" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-8" target="_UJ83jsw6JJzsuaWNcb1-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="952" y="933.5" />
+              <mxPoint x="1028" y="971.2499999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-23" value="1-N items[]" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-10" target="_UJ83jsw6JJzsuaWNcb1-11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1472" y="971.2499999999998" />
+              <mxPoint x="1548" y="939.4999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-24" value="1-N items[] snapshot" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-10" target="_UJ83jsw6JJzsuaWNcb1-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1472" y="1104.7499999999998" />
+              <mxPoint x="1546" y="1211.9999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-25" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-8" target="_UJ83jsw6JJzsuaWNcb1-13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="952" y="740.4999999999998" />
+              <mxPoint x="990" y="467.4999999999998" />
+              <mxPoint x="1510" y="467.4999999999998" />
+              <mxPoint x="1548" y="334.4999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UJ83jsw6JJzsuaWNcb1-26" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;noEdgeStyle=1;orthogonal=1;" edge="1" parent="1" source="_UJ83jsw6JJzsuaWNcb1-9" target="_UJ83jsw6JJzsuaWNcb1-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="952" y="1227.5" />
+              <mxPoint x="990" y="1206.4999999999998" />
+              <mxPoint x="1510" y="1206.4999999999998" />
+              <mxPoint x="1548" y="1331.9999999999998" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="2-Promotions Payment Loyalty" id="Y85Iaiz7Z2sYD267uYe4">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="28" value="Promotions / Payment / Loyalty" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#111827;fontColor=#ffffff;strokeColor=#111827;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="860" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="29" value="Legend:&#xa;PK = Primary Key&#xa;FK = Foreign Key&#xa;UQ = Unique&#xa;OPT = Optional&#xa;DEF(x) = Default&#xa;IDX(...) = Index&#xa;Tags: [snapshot], [denorm], [computed], [legacy], [mixed], [ambiguous], [observed-in-db], [frontend-used], [alias]" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="20" width="1680" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="Promotion&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title:String [req], description&#xa;type enum(percent,fixed_amount,bogo,free_shipping,points_multiplier,gift_item,flash_deal)&#xa;voucher_type enum(product,shipping) DEF(product)&#xa;status enum(draft,active,scheduled,expired,paused) DEF(active)&#xa;start_date, end_date, is_active, priority&#xa;scope enum(all,product,category,branch)&#xa;target_product_ids[], target_category_ids[], target_branch_ids[]&#xa;excluded_product_ids[], excluded_category_ids[]&#xa;is_auto_generated, source, suggested_by_system&#xa;total_quantity, remaining_quantity, claimed_count&#xa;hide_after_expired_hours, auto_hide_after_expired, notification_sent&#xa;usage_limit, max_redemptions, usage_count, usage_per_user&#xa;min_order_amount, min_quantity, gift_quantity&#xa;discount_value, max_discount_amount, gift_product_id, points_multiplier&#xa;badge_text, banner_image, image, banner_url&#xa;claim_campaign, stackable&#xa;created_by:ObjectId FK-&gt;User&#xa;created_at, updated_at&#xa;IDX (is_active,status,start_date,end_date,priority)&#xa;IDX scope&#xa;[schema defect] scope + target_* duplicated in same schema declaration&#xa;NOTE: Promotion schema duplicates scope/target fields; include as known defect." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fee2e2;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="420" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="PromotionClaim&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK promotion_id:Mixed [req]-&gt;Promotion&#xa;FK user_id:Mixed [req]-&gt;User&#xa;branch_id:Mixed OPT FK-&gt;Branch&#xa;claimed_at:Date DEF(now)&#xa;status enum(claimed,used,expired,cancelled) DEF(claimed)&#xa;used_order_id:Mixed OPT FK-&gt;Order&#xa;created_at, updated_at&#xa;IDX (promotion_id,user_id,created_at)&#xa;IDX (user_id,status)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fee2e2;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="PromotionUsage&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK promotion_id:Mixed [req]-&gt;Promotion&#xa;FK user_id:Mixed OPT-&gt;User&#xa;FK order_id:Mixed [req]-&gt;Order&#xa;discount_amount:Number DEF(0)&#xa;created_at&#xa;IDX (promotion_id,user_id,created_at)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fee2e2;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="33" value="Coupon&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;code:String [req,UQ,uppercase]&#xa;title, description, image, banner_image&#xa;type enum(percent,fixed_amount,free_shipping,points)&#xa;voucher_type enum(product,shipping) DEF(product)&#xa;discount_value, min_order_amount, min_quantity, max_discount_amount&#xa;total_quantity, remaining_quantity, claimed_count&#xa;hide_after_expired_hours, auto_hide_after_expired&#xa;start_date, end_date, usage_limit, usage_per_user, used_count&#xa;is_active, status enum(draft,active,scheduled,expired,paused)&#xa;claim_campaign, badge_text, scope&#xa;target_product_ids[], target_category_ids[], target_branch_ids[]&#xa;excluded_product_ids[], excluded_category_ids[]&#xa;created_by:ObjectId FK-&gt;User&#xa;created_at, updated_at&#xa;IDX UQ(code), IDX (is_active,start_date,end_date), IDX scope, IDX voucher_type&#xa;[alias/frontend-used] value, min_order_value, max_discount_value" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ffedd5;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="560" width="420" height="274" as="geometry" />
+        </mxCell>
+        <mxCell id="34" value="CouponClaim&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK coupon_id:Mixed [req]-&gt;Coupon&#xa;FK user_id:Mixed [req]-&gt;User&#xa;claimed_at:Date DEF(now)&#xa;status enum(claimed,used,expired,cancelled) DEF(claimed)&#xa;used_order_id:Mixed OPT FK-&gt;Order&#xa;created_at, updated_at&#xa;IDX (coupon_id,user_id,created_at)&#xa;IDX (user_id,status)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ffedd5;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="560" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="35" value="CouponUsage&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK coupon_id:Mixed [req]-&gt;Coupon&#xa;FK user_id:Mixed [req]-&gt;User&#xa;FK order_id:Mixed OPT-&gt;Order&#xa;discount_amount:Number DEF(0)&#xa;used_at timestamp&#xa;IDX (coupon_id,user_id,used_at)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ffedd5;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="560" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="36" value="PaymentMethod&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req]-&gt;User&#xa;type:String DEF(card)&#xa;provider, brand, last4, holder_name&#xa;card_number [sensitive], card_holder, expiry, phone&#xa;is_default:Boolean DEF(false)&#xa;icon:String&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e0e7ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="37" value="PaymentTransaction&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK order_id:Mixed OPT-&gt;Order&#xa;FK user_id:Mixed OPT-&gt;User&#xa;provider:String, method_id:String FK-&gt;PaymentMethod&#xa;transaction_id:String&#xa;amount:Number, currency:String DEF(VND)&#xa;status enum(PENDING,PROCESSING,COMPLETED,PAID,FAILED,CANCELLED)&#xa;qr_data:{bank,account_name,account_number,amount,description,qr_url}&#xa;paid_at, expired_at&#xa;metadata:Mixed&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e0e7ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="38" value="PaymentProvider&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req]&#xa;code:String [req]&#xa;icon:String&#xa;is_active:Boolean DEF(true)&#xa;config:Mixed&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e0e7ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="39" value="LoyaltyTransaction&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req]-&gt;User&#xa;type enum(earn,redeem,adjust,expire) DEF(earn)&#xa;points:Number [req]&#xa;source:String DEF(purchase)&#xa;description:String&#xa;FK order_id:Mixed OPT-&gt;Order&#xa;balance_after:Number DEF(0)&#xa;created_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#d1fae5;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="560" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="LoyaltyRule&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req]&#xa;description:String&#xa;type:String DEF(earn)&#xa;points_per_unit:Number DEF(0)&#xa;min_order_value:Number DEF(0)&#xa;multiplier:Number DEF(1)&#xa;is_active:Boolean DEF(true)&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#d1fae5;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="560" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="HotDeal (Flash/Hot)&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title, description, image_url, badge_text&#xa;FK product_id:Mixed [req]-&gt;Product&#xa;FK branch_product_id:Mixed OPT-&gt;BranchProduct&#xa;type enum(percent,fixed_amount) DEF(percent)&#xa;discount_value, discount_percent [legacy], deal_price, original_price&#xa;target_product_ids[], target_category_ids[], target_branch_ids[]&#xa;start_date, end_date&#xa;stock_limit [legacy], total_quantity, remaining_quantity, sold_count&#xa;is_active, status enum(draft,active,expired), priority&#xa;created_by:ObjectId FK-&gt;User&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fde68a;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="FlashDeal (Alias)&#xa;------------------------------&#xa;export const FlashDeal = HotDeal&#xa;No independent collection/schema&#xa;[legacy alias for backward compatibility]&#xa;NOTE: Alias only: read/write goes to HotDeal model." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fde68a;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="FeaturedCollection&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title:String [req]&#xa;description:String&#xa;image:String&#xa;product_ids:[Mixed]&#xa;sort_order:Number DEF(0)&#xa;is_active:Boolean DEF(true)&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef9c3;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="DeliverySlot&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK branch_id:Mixed OPT-&gt;Branch&#xa;date:String&#xa;time_start, time_end:String&#xa;capacity:Number DEF(0)&#xa;booked:Number DEF(0)&#xa;is_available:Boolean DEF(true)&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef9c3;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="45" value="User (Ref)&#xa;------------------------------&#xa;External entity on Page-1&#xa;NOTE: Reference only for relation clarity." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="Order (Ref)&#xa;------------------------------&#xa;External entity on Page-1&#xa;NOTE: Reference only for relation clarity." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="1020" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="47" value="1-N claimed" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="30" target="31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="48" value="1-N usage" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="30" target="32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="49" value="1-N claimed" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="33" target="34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="50" value="1-N usage" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="33" target="35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="1-N method usage" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="36" target="37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="52" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="45" target="36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="53" value="1-N/1-1 by flow" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="46" target="37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="54" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="45" target="31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="55" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="45" target="34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="56" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="46" target="32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="57" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="46" target="35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="58" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="45" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="59" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="46" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="60" value="alias" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="41" target="42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="3-CX Support Review Notification History Wishlist" id="aGvNGTwLSCoH54DFLbcc">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="61" value="CX / Support / Review / Notification / History / Wishlist" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#111827;fontColor=#ffffff;strokeColor=#111827;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="860" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="62" value="Legend:&#xa;PK = Primary Key&#xa;FK = Foreign Key&#xa;UQ = Unique&#xa;OPT = Optional&#xa;DEF(x) = Default&#xa;IDX(...) = Index&#xa;Tags: [snapshot], [denorm], [computed], [legacy], [mixed], [ambiguous], [observed-in-db], [frontend-used], [alias]" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="20" width="1680" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="63" value="Review&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req]-&gt;User&#xa;user_name,user_avatar [snapshot]&#xa;FK product_id:Mixed [req]-&gt;Product&#xa;product_name [snapshot]&#xa;FK branch_id:Mixed OPT-&gt;Branch, branch_name snapshot&#xa;FK order_id:Mixed OPT-&gt;Order&#xa;rating:Number [req 1..5]&#xa;title, content, images[]&#xa;status enum(published,pending,hidden,deleted,reported,rejected,approved,active,flagged)&#xa;is_verified_purchase, helpful_count, reported_count&#xa;is_featured, is_hidden, is_deleted&#xa;admin_notes, moderation_reason&#xa;reply:{content,admin_id,admin_name,replied_at}&#xa;created_at, updated_at&#xa;IDX (status,created_at)&#xa;[legacy/frontend-used] comment, replies[]" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="420" height="274" as="geometry" />
+        </mxCell>
+        <mxCell id="64" value="SupportTicket&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;ticket_code:String UQ sparse&#xa;FK user_id:Mixed [req]-&gt;User&#xa;user_name,user_email,user_avatar [snapshot]&#xa;FK branch_id:Mixed OPT-&gt;Branch, branch_name snapshot&#xa;FK order_id:Mixed OPT-&gt;Order&#xa;category, priority enum(low,medium,high,urgent)&#xa;status enum(open,pending,in_progress,waiting_customer,resolved,closed,cancelled)&#xa;subject:String [req], message:String&#xa;attachments[]&#xa;thread[]:{sender_type,sender_id,sender_name,content,attachments,created_at}&#xa;messages[] [legacy fallback]&#xa;internal_notes[]&#xa;assigned_agent_id, assigned_agent_name, assigned_to [legacy]&#xa;sla_due_at, first_response_at, resolved_at, closed_at&#xa;created_at, updated_at&#xa;IDX UQ(ticket_code,sparse)&#xa;IDX (status,created_at)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="110" width="420" height="288" as="geometry" />
+        </mxCell>
+        <mxCell id="65" value="Notification&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req]-&gt;User&#xa;type:String DEF(info)&#xa;title:String [req], message:String&#xa;icon:String DEF(info)&#xa;link:String OPT&#xa;action_url:String [frontend alias]&#xa;is_read:Boolean DEF(false)&#xa;metadata:Mixed&#xa;created_at, updated_at&#xa;IDX user_id" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="66" value="ViewedHistory&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req,index]-&gt;User&#xa;FK product_id:Mixed [req,index]-&gt;Product&#xa;FK branch_product_id:Mixed OPT index-&gt;BranchProduct&#xa;product_name, product_image [snapshot]&#xa;price, original_price [snapshot]&#xa;category:String [snapshot]&#xa;view_count:Number DEF(1) [computed]&#xa;viewed_at:Date DEF(now) index&#xa;created_at, updated_at&#xa;IDX UQ(user_id,product_id,branch_product_id)&#xa;IDX (user_id,viewed_at desc)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="67" value="WishlistItem&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req,index]-&gt;User&#xa;FK product_id:Mixed OPT index-&gt;Product&#xa;FK branch_product_id:Mixed OPT index-&gt;BranchProduct&#xa;created_at, updated_at&#xa;IDX UQ sparse(user_id,product_id,branch_product_id)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="68" value="ReturnRequest&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK user_id:Mixed [req,index]-&gt;User&#xa;FK order_id:Mixed [req,index]-&gt;Order&#xa;FK branch_id:Mixed OPT index-&gt;Branch&#xa;status enum(pending,approved,rejected,picked_up,refunded,closed,cancelled)&#xa;reason:String [req], description&#xa;refund_method:String DEF(original_payment)&#xa;contact_phone, amount_requested&#xa;evidence_images[]&#xa;items[]:{product_id,branch_product_id,product_name,product_image,quantity,price,reason_detail}&#xa;admin_note, resolved_by, resolved_at&#xa;timeline[]:{status,note,by,timestamp}&#xa;created_at, updated_at&#xa;IDX (user_id,order_id,status)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fae8ff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="110" width="420" height="232" as="geometry" />
+        </mxCell>
+        <mxCell id="69" value="EventPost&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title:String&#xa;slug:String [req,UQ]&#xa;category_id:Number&#xa;thumbnail, thumbnail_alt, excerpt&#xa;author_name, author_avatar&#xa;published_at, read_time, views, likes&#xa;tags:[String]&#xa;start_date, end_date&#xa;is_featured, is_published&#xa;related_post_ids:[Number]&#xa;content_blocks:[Mixed]&#xa;status:String&#xa;created_by:Number&#xa;created_at, updated_at&#xa;collection: event_posts" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ede9fe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="900" width="420" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="70" value="Event&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title:String [req], slug&#xa;summary, content&#xa;thumbnail, banner_image, images[]&#xa;category:String DEF(promotion), tags[]&#xa;author:String DEF(Admin)&#xa;status enum(draft,published,archived)&#xa;is_featured, start_date, end_date&#xa;views, likes, comments_count [computed]&#xa;related_products:[Mixed] FK-&gt;Product[]&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ede9fe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="71" value="EventComment&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK event_id:Mixed [req]-&gt;Event/EventPost&#xa;FK user_id:Mixed [req]-&gt;User&#xa;user_name,user_avatar [snapshot]&#xa;content:String [req]&#xa;status:String DEF(active)&#xa;created_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ede9fe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="72" value="Banner&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;title, subtitle&#xa;image [legacy], image_url, mobile_image_url&#xa;alt_text, link, link_type&#xa;position, sort_order, priority&#xa;is_active, start_date, end_date&#xa;branch_id, category_id, product_id [snapshot refs]&#xa;text_color, overlay_color, text_shadow&#xa;created_by:ObjectId FK-&gt;User&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fef9c3;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="73" value="User (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="74" value="Order (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="75" value="Product (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="1200" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="76" value="Branch (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="1200" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="77" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="63">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="78" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="75" target="63">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="79" value="1-N optional" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="74" target="63">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="80" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="64">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="81" value="1-N optional" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="74" target="64">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="82" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="65">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="83" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="66">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="84" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="75" target="66">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="85" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="67">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="86" value="1-N optional" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="75" target="67">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="87" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="68">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="88" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="74" target="68">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="89" value="1-N optional" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="76" target="68">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="90" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="70" target="71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="91" value="1-N (logic uses EventPost)" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="69" target="71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="92" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="73" target="71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="4-Admin Inventory Supplier Import Stock Batch" id="HnrhpLZW-3OI9KSPD2j5">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="93" value="Admin Inventory / Supplier / Import / Stock / Batch" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#111827;fontColor=#ffffff;strokeColor=#111827;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="860" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="94" value="Legend:&#xa;PK = Primary Key&#xa;FK = Foreign Key&#xa;UQ = Unique&#xa;OPT = Optional&#xa;DEF(x) = Default&#xa;IDX(...) = Index&#xa;Tags: [snapshot], [denorm], [computed], [legacy], [mixed], [ambiguous], [observed-in-db], [frontend-used], [alias]" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="20" width="1680" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="95" value="Supplier&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;code:String IDX&#xa;name:String [req] IDX&#xa;contact_name, email, phone, address&#xa;tax_code, payment_terms&#xa;note:String&#xa;total_debt:Number DEF(0) [computed]&#xa;is_active:Boolean DEF(true)&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#cffafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="96" value="ImportOrder&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;order_code:String [req,UQ] IDX&#xa;FK supplier_id:ObjectId [req]-&gt;Supplier&#xa;FK branch_id:Mixed [req]-&gt;Branch&#xa;status enum(draft,ordered,partially_received,received,cancelled)&#xa;expected_date, ordered_date, received_date&#xa;currency:String DEF(VND)&#xa;items[]:{product_id,branch_product_id,sku,product_name,quantity_ordered,quantity_received,unit_cost,subtotal,batch_code,expiry_date,note}&#xa;total_amount, total_received_amount [computed]&#xa;note:String&#xa;timeline[]:{status,note,by,at}&#xa;created_by, updated_by FK-&gt;User&#xa;created_at, updated_at&#xa;IDX (branch_id,status,created_at)&#xa;IDX (supplier_id,created_at)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#cffafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="110" width="420" height="246" as="geometry" />
+        </mxCell>
+        <mxCell id="97" value="ImportReceipt&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;receipt_code:String [req,UQ] IDX&#xa;FK import_order_id:ObjectId [req]-&gt;ImportOrder IDX&#xa;FK supplier_id:ObjectId [req]-&gt;Supplier&#xa;FK branch_id:Mixed [req]-&gt;Branch IDX&#xa;received_date:Date DEF(now)&#xa;status enum(draft,confirmed,cancelled)&#xa;items[]:{import_order_item_id,product_id,branch_product_id,product_name,quantity_received,unit_cost,subtotal,batch_code,expiry_date,note}&#xa;total_amount:Number&#xa;note:String&#xa;created_by, updated_by FK-&gt;User&#xa;created_at, updated_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#cffafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="98" value="InventoryBatch&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK branch_product_id:Mixed [req] IDX -&gt;BranchProduct&#xa;batch_code:String IDX&#xa;quantity:Number [req]&#xa;exp_date:Date IDX&#xa;manufacture_date, received_date&#xa;cost_price:Number&#xa;supplier_id:Mixed FK-&gt;Supplier&#xa;supplier_name:String [snapshot]&#xa;note:String&#xa;purchase_order_id:Mixed FK-&gt;ImportOrder&#xa;import_receipt_id:Mixed FK-&gt;ImportReceipt&#xa;created_at, updated_at&#xa;IDX (branch_product_id,exp_date,received_date)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#cffafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="110" width="420" height="232" as="geometry" />
+        </mxCell>
+        <mxCell id="99" value="StockMovement (Canonical)&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;FK branch_id:Mixed [req] IDX-&gt;Branch&#xa;branch_name:String [snapshot]&#xa;FK product_id:Mixed [req] IDX-&gt;Product&#xa;product_name:String [snapshot]&#xa;FK branch_product_id:Mixed [req] IDX-&gt;BranchProduct&#xa;batch_code:String&#xa;movement_type enum(inbound,outbound,sale,adjustment,transfer,return,cancel) [req]&#xa;quantity:Number [req]&#xa;before_stock:Number [req], after_stock:Number [req]&#xa;reference_type enum(import_receipt,order,return,manual,transfer) DEF(manual)&#xa;reference_id:Mixed IDX&#xa;created_by:Mixed FK-&gt;User&#xa;note:String&#xa;created_at, updated_at&#xa;IDX (branch_product_id,created_at)&#xa;IDX (branch_id,product_id)&#xa;IDX (reference_id,reference_type)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#cffafe;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="110" width="420" height="288" as="geometry" />
+        </mxCell>
+        <mxCell id="100" value="StockMovement (Legacy in Misc)&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;branch_product_id [req]&#xa;type enum(adjustment,sale,restock,return,damage)&#xa;quantity [req], previous_stock, new_stock&#xa;reason, performed_by, product_id, branch_id&#xa;reference_type, reference_id&#xa;batch_code, expiry_date, unit_cost&#xa;created_at&#xa;[duplicate model name: StockMovement in Misc.js]&#xa;NOTE: Duplicate model with same name can cause divergence depending import path." style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#fde68a;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="110" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="101" value="AuditLog&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;user_id:Mixed FK-&gt;User&#xa;user_name:String [snapshot]&#xa;action:String [req]&#xa;entity:String, entity_id:Mixed&#xa;details:Mixed&#xa;ip:String&#xa;created_at" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e2e8f0;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="20" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="102" value="AdminSetting&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;key:String [req,UQ]&#xa;value:Mixed&#xa;label:String&#xa;group:String DEF(general)&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e2e8f0;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="460" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="103" value="NotificationTemplate&#xa;------------------------------&#xa;PK _id:ObjectId&#xa;name:String [req]&#xa;subject:String&#xa;body:String&#xa;type:String DEF(email)&#xa;is_active:Boolean DEF(true)&#xa;createdAt, updatedAt" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#e2e8f0;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="900" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="104" value="Branch (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="105" value="Product (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="106" value="BranchProduct (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="900" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="107" value="User (Ref)&#xa;------------------------------&#xa;External entity on Page-1" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacing=8;fillColor=#ecfeff;strokeColor=#334155;fontSize=11;fontFamily=Consolas;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="1180" width="420" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="108" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="95" target="96">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="109" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="95" target="97">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="110" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="95" target="98">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="111" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="96" target="97">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="112" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="97" target="98">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="113" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="106" target="98">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="114" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="104" target="96">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="115" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="104" target="97">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="116" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="104" target="99">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="117" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="105" target="99">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="118" value="1-N" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="106" target="99">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="119" value="duplicate semantic model" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="99" target="100">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="120" value="1-N actor" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="107" target="101">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="121" value="1-N actor" style="endArrow=block;endFill=1;html=1;rounded=0;strokeWidth=1.2;strokeColor=#475569;labelBackgroundColor=#ffffff;fontSize=10;" edge="1" parent="1" source="107" target="99">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
