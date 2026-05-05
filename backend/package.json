@@ -9,6 +9,7 @@
     "test": "node --test tests/api.test.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.76.4",
     "cors": "^2.8.5",

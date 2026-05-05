@@ -53,11 +53,7 @@ export interface CompareProduct {
 }
 
 export interface CompareAISummary {
-	title: string;
-	pros: string[];
-	cons: string[];
-	recommendation: string;
-	notes: string[];
+	markdown: string;
 }
 
 export interface NormalizedShopProduct {

@@ -2110,7 +2110,7 @@ const AdminCouponsManagement: React.FC = () => {
           </div>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-container text-white font-bold rounded-xl shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
           >
             <span className="material-symbols-outlined text-xl">add</span>
             Tạo {activeTab === 'promotions' ? 'Khuyến mãi' : activeTab === 'banners' ? 'Banner' : 'Hot Deal'} mới
@@ -2139,8 +2139,10 @@ const AdminCouponsManagement: React.FC = () => {
         </div>
 
         <section className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-slate-100">
-          <div className="flex-1 min-w-55 relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+          <div className="flex-1 min-w-55 relative flex items-center">
+            <div className="absolute left-0 top-0 h-full w-10 flex items-center justify-center pointer-events-none">
+              <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block">search</span>
+            </div>
             <input
               value={searchTerm}
               onChange={(e) => {

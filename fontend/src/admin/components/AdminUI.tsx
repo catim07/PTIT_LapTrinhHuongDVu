@@ -4,21 +4,21 @@ import React, { useEffect, useRef } from 'react';
    DESIGN TOKENS
    ============================================================ */
 const cls = {
-  card: 'bg-white rounded-2xl border border-slate-200/80 shadow-sm',
+  card: 'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors',
   cardHover: 'hover:shadow-md transition-shadow',
-  input: 'w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all placeholder:text-slate-400',
-  select: 'px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all appearance-none cursor-pointer',
-  btnPrimary: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-900/10 hover:shadow-red-900/25 hover:from-red-700 hover:to-red-800 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnSecondary: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnDanger: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-red-600 text-white hover:bg-red-700 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] shadow-lg shadow-red-600/15 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnDangerSoft: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-red-50 text-red-700 hover:bg-red-100 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnOutline: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnGhost: 'inline-flex items-center justify-center gap-2 h-9 px-3 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  input: 'w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100',
+  select: 'px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all appearance-none cursor-pointer text-slate-900 dark:text-slate-100',
+  btnPrimary: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  btnSecondary: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] border border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  btnDanger: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-error text-white hover:bg-error/90 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] shadow-lg shadow-error/15 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  btnDangerSoft: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-error-container/20 text-error hover:bg-error-container/40 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] border border-error-container/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  btnOutline: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+  btnGhost: 'inline-flex items-center justify-center gap-2 h-9 px-3 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
   btnSuccess: 'inline-flex items-center justify-center gap-2 h-10 px-5 bg-green-600 text-white hover:bg-green-700 rounded-xl text-sm font-bold shadow-lg shadow-green-600/15 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-  btnIcon: 'inline-flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed',
-  thCell: 'p-4 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider',
-  tdCell: 'p-4 text-sm text-slate-700',
-  label: 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5',
+  btnIcon: 'inline-flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer active:scale-[0.95] disabled:opacity-50 disabled:cursor-not-allowed',
+  thCell: 'p-4 text-left text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider',
+  tdCell: 'p-4 text-sm text-slate-700 dark:text-slate-300',
+  label: 'block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5',
 };
 
 export { cls };
@@ -49,13 +49,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, a
       )}
       <div className="flex items-center gap-3">
         {icon && (
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-lg shadow-red-900/15">
+          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
             <span className="material-symbols-outlined text-white text-xl">{icon}</span>
           </div>
         )}
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{title}</h1>
-          {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">{title}</h1>
+          {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -86,8 +86,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placehold
     }
   };
   return (
-    <div className="relative">
-      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+    <div className="relative flex items-center">
+      <div className="absolute left-0 top-0 h-full w-10 flex items-center justify-center pointer-events-none">
+        <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block">search</span>
+      </div>
       <input
         value={value}
         onChange={(e) => handleChange(e.target.value)}
@@ -334,7 +336,7 @@ export const Modal: React.FC<ModalProps> = ({ open, onClose, title, subtitle, ic
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/50 rounded-t-2xl">
           <div className="flex items-center gap-3">
             {icon && (
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm shadow-primary/20">
                 <span className="material-symbols-outlined text-white text-[18px]">{icon}</span>
               </div>
             )}
@@ -398,7 +400,7 @@ export const DetailDrawer: React.FC<DrawerProps> = ({ open, onClose, title, subt
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-3">
             {icon && (
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm shadow-primary/20">
                 <span className="material-symbols-outlined text-white text-[18px]">{icon}</span>
               </div>
             )}

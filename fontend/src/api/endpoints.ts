@@ -263,6 +263,17 @@ export const endpoints = {
   },
 
   // ═══════════════════════════════════════════════
+  // RECIPES
+  // ═══════════════════════════════════════════════
+  recipes: {
+    list: '/recipes',
+    search: '/recipes/search',
+    detail: (id: string | number) => `/recipes/${id}`,
+    byName: (name: string) => `/recipes/by-name/${name}`,
+    generate: '/recipes/generate',
+  },
+
+  // ═══════════════════════════════════════════════
   // REVIEWS
   // ═══════════════════════════════════════════════
   reviews: {
@@ -327,6 +338,7 @@ export const endpoints = {
     create: '/branches',
     update: (id: string | number) => `/branches/${id}`,
     delete: (id: string | number) => `/branches/${id}`,
+    nearby: '/branches/nearby',
   },
 
   // ═══════════════════════════════════════════════

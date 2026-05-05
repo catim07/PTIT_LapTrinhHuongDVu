@@ -194,6 +194,7 @@ export interface ARModel {
 
 export interface Branch {
   id: string | number;
+  _id?: string;
   code?: string;
   name: string;
   address: string;
@@ -205,11 +206,13 @@ export interface Branch {
     lng: number;
   };
   phone: string;
+  manager?: string;
   operating_hours?: string;
   opening_hours?: string;
-  manager_user_id: number | null;
+  manager_user_id?: number | null;
   branch_product_ids?: (string | number)[];
   is_active?: boolean;
+  coverage_radius_km?: number;
   created_at?: string;
   updated_at?: string;
 }

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -367,6 +367,38 @@ const Home: React.FC = () => {
                 </div>
               )
             ))}
+          </div>
+        </section>
+
+        {/* Smart Shopping Promotional Banner */}
+        <section className="bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 rounded-3xl p-8 md:p-12 text-white shadow-premium relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000"></div>
+          <div className="relative z-10 max-w-2xl">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 flex items-center gap-3">
+              <span className="material-symbols-outlined !text-4xl md:!text-5xl text-[#FFD60A]">auto_awesome</span>
+              Smart Shopping
+            </h2>
+            <p className="text-lg text-white/90 font-medium mb-6">
+              Trải nghiệm mua sắm cá nhân hóa với AI. Khám phá gợi ý sản phẩm, theo dõi giá tự động, và mua nguyên liệu theo công thức món ăn Việt Nam chỉ với 1 click!
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link to="/smart-shopping" className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-lg shadow-black/10 flex items-center gap-2">
+                <span className="material-symbols-outlined !text-xl">psychology</span>
+                Khám phá ngay
+              </Link>
+              <Link to="/smart-shopping?tab=recipe" className="bg-black/20 backdrop-blur-md text-white border border-white/20 px-8 py-3 rounded-xl font-bold hover:bg-black/30 transition-colors flex items-center gap-2">
+                <span className="material-symbols-outlined !text-xl">restaurant_menu</span>
+                Mua theo công thức
+              </Link>
+            </div>
+          </div>
+          <div className="relative z-10 shrink-0 hidden lg:block">
+            <div className="w-48 h-48 bg-white/10 rounded-full border border-white/20 flex items-center justify-center p-8 backdrop-blur-sm animate-[spin_20s_linear_infinite]">
+              <span className="material-symbols-outlined !text-8xl text-white">magic_button</span>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="material-symbols-outlined !text-5xl text-[#FFD60A]">robot_2</span>
+            </div>
           </div>
         </section>
 

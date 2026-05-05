@@ -55,7 +55,7 @@ const ComparePage: React.FC = () => {
         summaryCons: 'Things to consider',
         summaryNotes: 'Notes',
         summaryHintReady: 'Click Summarize with AI to see highlights and drawbacks from real comparison data.',
-        summaryHintNotReady: 'AI is not ready. Please configure GEMINI_API_KEY in backend.',
+        summaryHintNotReady: 'AI is not ready. Please configure GEMINI_COMPARE_KEY in backend.',
         compareLoadError: 'Unable to load comparison data.',
         aiDefaultError: 'Unable to generate AI summary right now. Please try again.',
       }
@@ -80,7 +80,7 @@ const ComparePage: React.FC = () => {
         summaryCons: 'Diem can can nhac',
         summaryNotes: 'Ghi chu',
         summaryHintReady: 'Bam nut Tom tat bang AI de xem tong hop uu va nhuoc diem dua tren du lieu so sanh thuc te.',
-        summaryHintNotReady: 'AI chua san sang. Vui long cau hinh GEMINI_API_KEY o backend de su dung tinh nang nay.',
+        summaryHintNotReady: 'AI chua san sang. Vui long cau hinh GEMINI_COMPARE_KEY o backend de su dung tinh nang nay.',
         compareLoadError: 'Khong the tai du lieu so sanh.',
         aiDefaultError: 'Khong the tao tom tat AI luc nay. Vui long thu lai.',
       }
@@ -310,41 +310,10 @@ const ComparePage: React.FC = () => {
         )}
 
         {summary ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <h3 className="text-base font-black text-blue-800">{summary.title}</h3>
-              <p className="mt-2 text-sm font-semibold text-blue-700">{summary.recommendation}</p>
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm dark:border-indigo-900/50 dark:bg-slate-800/80">
+            <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none whitespace-pre-wrap text-slate-800 dark:text-slate-200">
+              {summary.markdown}
             </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl bg-emerald-50 p-4">
-              <h3 className="mb-2 text-sm font-black text-emerald-700">{uiText.summaryPros}</h3>
-              <ul className="space-y-2 text-sm text-emerald-800">
-                {summary.pros.map((item, idx) => (
-                  <li key={`s-${idx}`}>• {item}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-xl bg-amber-50 p-4">
-              <h3 className="mb-2 text-sm font-black text-amber-700">{uiText.summaryCons}</h3>
-              <ul className="space-y-2 text-sm text-amber-800">
-                {summary.cons.map((item, idx) => (
-                  <li key={`c-${idx}`}>• {item}</li>
-                ))}
-              </ul>
-            </div>
-            </div>
-
-            {summary.notes.length > 0 && (
-              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
-                <h3 className="mb-2 text-sm font-black text-slate-700 dark:text-slate-100">{uiText.summaryNotes}</h3>
-                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                  {summary.notes.map((item, idx) => (
-                    <li key={`n-${idx}`}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500">

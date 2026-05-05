@@ -119,12 +119,8 @@ orderSchema.pre('countDocuments', function() {
   }
 });
 
-orderSchema.pre('save', function(next) {
-  if (this.isNew || this.isModified('status')) {
-    if (!this.timeline) this.timeline = [];
-    this.timeline.push({ status: this.status, timestamp: new Date() });
-  }
-  next();
-});
+// NOTE: timeline auto-push removed to prevent duplicates.
+// tracking.history is the single source of truth for status events.
+// The timeline field is kept in schema for backward compatibility only.
 
 export default mongoose.model('Order', orderSchema);

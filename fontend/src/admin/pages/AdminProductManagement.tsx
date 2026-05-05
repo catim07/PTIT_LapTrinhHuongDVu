@@ -454,7 +454,7 @@ const AdminProductManagement: React.FC = () => {
               <span className="material-symbols-outlined">publish</span>
               Import Data
             </button>
-            <button onClick={handleCreateSKU} disabled={isProcessing} className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-900/10 hover:shadow-red-900/25 hover:from-red-700 hover:to-red-800 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            <button onClick={handleCreateSKU} disabled={isProcessing} className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm">
               <span className="material-symbols-outlined">add</span>
               Tạo mới SKU
             </button>
@@ -589,8 +589,10 @@ const AdminProductManagement: React.FC = () => {
         <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-8 space-y-6 border border-slate-100">
           {/* Branch Filter Row removed because it's in the Header */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="col-span-1 md:col-span-4 relative">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+            <div className="col-span-1 md:col-span-4 relative flex items-center">
+              <div className="absolute left-0 top-0 h-full w-12 flex items-center justify-center pointer-events-none">
+                <span className="material-symbols-outlined text-slate-400 leading-none block">search</span>
+              </div>
               <input
                 className="w-full pl-12 pr-4 py-3 bg-surface-container-low border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm outline-none placeholder:text-slate-400"
                 placeholder="Tên sản phẩm, SKU hoặc mã..."
@@ -1070,7 +1072,7 @@ const AdminProductManagement: React.FC = () => {
 
               <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 mt-2">
                 <button type="button" onClick={() => setEditItem(null)} className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98] border border-slate-200">Hủy thao tác</button>
-                <button type="submit" disabled={isProcessing} className="inline-flex items-center justify-center gap-2 h-10 px-6 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-900/10 hover:shadow-red-900/25 hover:from-red-700 hover:to-red-800 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                <button type="submit" disabled={isProcessing} className="inline-flex items-center justify-center gap-2 h-10 px-6 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                   {isProcessing ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> : <span className="material-symbols-outlined text-sm">save</span>}
                   Lưu thay đổi
                 </button>

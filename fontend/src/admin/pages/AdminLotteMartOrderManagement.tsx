@@ -330,7 +330,7 @@ const AdminLotteMartOrderManagement: React.FC = () => {
               <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Quản lý đơn hàng</h2>
             </div>
             <div className="flex items-center gap-3">
-              <button className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-900/10 hover:shadow-red-900/25 hover:from-red-700 hover:to-red-800 transition-all cursor-pointer active:scale-[0.98] text-sm" onClick={() => fetchOrders(false)}>
+              <button className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] text-sm" onClick={() => fetchOrders(false)}>
                 <span className="material-symbols-outlined text-lg">refresh</span>
                 Làm mới
               </button>
@@ -531,26 +531,43 @@ const AdminLotteMartOrderManagement: React.FC = () => {
                 {getStatusBadge(selectedOrder.status)}
               </div>
 
-              {/* Status Timeline */}
-              {selectedOrder.timeline && selectedOrder.timeline.length > 0 && (
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Timeline</p>
-                  <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-                    {selectedOrder.timeline.map((point, idx) => (
-                      <div className="relative" key={idx}>
-                        <span className="absolute -left-[19px] top-1 w-4 h-4 rounded-full bg-primary ring-4 ring-white"></span>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-xs font-bold text-on-surface">{point.status}</p>
-                            <p className="text-[10px] text-slate-400">{point.note || "Cập nhật hệ thống"}</p>
+              {/* Status Timeline — single source: tracking.history */}
+              {(() => {
+                const STATUS_LABEL: Record<string, string> = {
+                  PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PROCESSING: 'Đang chuẩn bị',
+                  SHIPPING: 'Đang giao hàng', DELIVERED: 'Hoàn thành', CANCELLED: 'Đã hủy', RETURNED: 'Đã hoàn trả',
+                };
+                const history: any[] = (selectedOrder as any).tracking?.history || [];
+                // Deduplicate: keep the first occurrence of each status
+                const seen = new Set<string>();
+                const unique = history.filter((p: any) => {
+                  if (seen.has(p.status)) return false;
+                  seen.add(p.status);
+                  return true;
+                });
+                if (unique.length === 0) return null;
+                return (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lịch sử trạng thái</p>
+                  <div className="relative pl-5 space-y-3 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                    {unique.map((point: any, idx: number) => (
+                      <div className="relative flex items-start gap-3" key={idx}>
+                        <span className={`absolute -left-[13px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${point.status === 'CANCELLED' ? 'bg-red-500' : point.status === 'DELIVERED' ? 'bg-emerald-500' : idx === unique.length - 1 ? 'bg-primary' : 'bg-slate-300'}`}></span>
+                        <div className="flex-1 flex justify-between items-baseline min-w-0">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800">{STATUS_LABEL[point.status] || point.status}</p>
+                            {point.note && point.note !== 'Cập nhật hệ thống' && (
+                              <p className="text-[10px] text-slate-400 truncate">{point.note}</p>
+                            )}
                           </div>
-                          <span className="text-[10px] font-medium text-slate-400">{new Date(point.timestamp).toLocaleString("vi-VN")}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0 ml-2">{new Date(point.timestamp).toLocaleString("vi-VN")}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Customer Info */}
               <div className="p-4 bg-surface-container rounded-xl space-y-3">
@@ -702,7 +719,7 @@ const AdminLotteMartOrderManagement: React.FC = () => {
               
               <button 
                 onClick={() => setStatusModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-900/10 hover:shadow-red-900/25 hover:from-red-700 hover:to-red-800 transition-all cursor-pointer active:scale-[0.98] flex-1 min-w-[120px]"
+                className="inline-flex items-center justify-center gap-2 h-10 px-5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] flex-1 min-w-[120px]"
               >
                 Trạng thái
               </button>
@@ -714,15 +731,21 @@ const AdminLotteMartOrderManagement: React.FC = () => {
       {/* OVERLAYS & MODALS */}
       {/* Update Status Modal */}
       {isStatusModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setStatusModalOpen(false)}></div>
-          <div className="bg-white w-[400px] rounded-2xl shadow-2xl p-8 space-y-6 z-10 relative">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-primary text-3xl">update</span>
+          <div className="bg-white w-full max-w-[380px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 space-y-4 z-10 relative">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-primary text-xl">update</span>
               </div>
-              <h3 className="text-xl font-black">Cập nhật trạng thái</h3>
-              <p className="text-xs text-slate-400 mt-2">Đơn hàng #{selectedOrder.id}</p>
+              <div>
+                <h3 className="text-base font-black">Cập nhật trạng thái</h3>
+                <p className="text-[10px] text-slate-400">#{selectedOrder.id}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400">Hiện tại:</span>
+              {getStatusBadge(selectedOrder.status)}
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -733,11 +756,15 @@ const AdminLotteMartOrderManagement: React.FC = () => {
                   onChange={(e) => setNewStatus(e.target.value)}
                 >
                   <option value="" disabled>-- Chọn trạng thái --</option>
-                  <option value="CONFIRMED">Xác nhận đơn</option>
-                  <option value="PROCESSING">Đang chuẩn bị hàng</option>
-                  <option value="SHIPPING">Đang giao hàng</option>
-                  <option value="DELIVERED">Trọn vẹn / Hoàn thành</option>
+                  {selectedOrder.status === 'PENDING' && <option value="CONFIRMED">Xác nhận đơn</option>}
+                  {selectedOrder.status === 'CONFIRMED' && <option value="PROCESSING">Đang chuẩn bị hàng</option>}
+                  {selectedOrder.status === 'PROCESSING' && <option value="SHIPPING">Đang giao hàng</option>}
+                  {selectedOrder.status === 'SHIPPING' && <option value="DELIVERED">Hoàn thành giao hàng</option>}
+                  {selectedOrder.status === 'DELIVERED' && <option value="RETURNED">Trả hàng / Hoàn tiền</option>}
                 </select>
+                {['CANCELLED', 'RETURNED'].includes(selectedOrder.status) && (
+                  <p className="text-xs text-red-500 font-bold mt-1">Đơn hàng ở trạng thái cuối, không thể chuyển tiếp.</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Ghi chú (Tùy chọn)</label>
@@ -754,7 +781,7 @@ const AdminLotteMartOrderManagement: React.FC = () => {
               <button 
                 onClick={handleUpdateStatus} 
                 disabled={!newStatus}
-                className="flex-1 inline-flex items-center justify-center h-10 px-5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-900/10 hover:shadow-red-900/25 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 inline-flex items-center justify-center h-10 px-5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Lưu
               </button>
@@ -765,15 +792,17 @@ const AdminLotteMartOrderManagement: React.FC = () => {
 
       {/* Cancel Order Modal */}
       {isCancelModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setCancelModalOpen(false)}></div>
-          <div className="bg-white w-[400px] rounded-2xl shadow-2xl p-8 space-y-6 z-10 relative">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-red-600 text-3xl">cancel</span>
+          <div className="bg-white w-full max-w-[380px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 space-y-4 z-10 relative">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-red-600 text-xl">cancel</span>
               </div>
-              <h3 className="text-xl font-black text-red-600">Hủy đơn hàng</h3>
-              <p className="text-xs text-slate-400 mt-2">Hành động này không thể hoàn tác. Khách hàng sẽ nhận được thông báo về việc hủy đơn.</p>
+              <div>
+                <h3 className="text-base font-black text-red-600">Hủy đơn hàng</h3>
+                <p className="text-[10px] text-slate-400">Không thể hoàn tác</p>
+              </div>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -802,15 +831,17 @@ const AdminLotteMartOrderManagement: React.FC = () => {
 
       {/* Refund Modal */}
       {isRefundModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setRefundModalOpen(false)}></div>
-          <div className="bg-white w-[400px] rounded-2xl shadow-2xl p-8 space-y-6 z-10 relative">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-purple-600 text-3xl">currency_exchange</span>
+          <div className="bg-white w-full max-w-[380px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 space-y-4 z-10 relative">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-purple-600 text-xl">currency_exchange</span>
               </div>
-              <h3 className="text-xl font-black text-purple-600">Xử lý Hoàn tiền</h3>
-              <p className="text-xs text-slate-400 mt-2">Số tiền hoàn: <strong>{(selectedOrder.total_amount || 0).toLocaleString('vi-VN')} ₫</strong></p>
+              <div>
+                <h3 className="text-base font-black text-purple-600">Hoàn tiền</h3>
+                <p className="text-[10px] text-slate-400">Số tiền: <strong>{(selectedOrder.total_amount || 0).toLocaleString('vi-VN')} ₫</strong></p>
+              </div>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -838,15 +869,17 @@ const AdminLotteMartOrderManagement: React.FC = () => {
 
       {/* Tracking Modal */}
       {isTrackingModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setTrackingModalOpen(false)}></div>
-          <div className="bg-white w-[400px] rounded-2xl shadow-2xl p-8 space-y-6 z-10 relative">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-blue-600 text-3xl">local_shipping</span>
+          <div className="bg-white w-full max-w-[380px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 space-y-4 z-10 relative">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-blue-600 text-xl">local_shipping</span>
               </div>
-              <h3 className="text-xl font-black text-blue-600">Gán mã vận đơn</h3>
-              <p className="text-xs text-slate-400 mt-2">Đơn hàng #{selectedOrder.id}</p>
+              <div>
+                <h3 className="text-base font-black text-blue-600">Gán mã vận đơn</h3>
+                <p className="text-[10px] text-slate-400">#{selectedOrder.id}</p>
+              </div>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">

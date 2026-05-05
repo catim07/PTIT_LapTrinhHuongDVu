@@ -1,4 +1,4 @@
-﻿# Issues And Gaps Re-Audit (After Full Data-Model Sync)
+# Issues And Gaps Re-Audit (After Full Data-Model Sync)
 
 ## 1. Critical (P0)
 | ID | Issue | Current State | Evidence | Action |
@@ -31,6 +31,16 @@
 | Seed data loss | Expanded seed mapping in [backend/seed/index.js](../backend/seed/index.js) so fields are persisted to Mongo.
 | FE type drift | Updated [fontend/src/types/index.ts](../fontend/src/types/index.ts) to match schema/sample contracts.
 | Documentation drift | Rebuilt all docs in [map_wed](.) around 3-way field audit model.
+
+## 4.1 Fixed — Recipe System Overhaul (2026-05-04)
+| Item | Change |
+|---|---|
+| AI recipe quality | Rewrote Gemini prompt in [backend/services/aiService.js](../backend/services/aiService.js) with hyper-specific examples, 20+ banned phrases, min 8 ingredients, min 5 steps with timing/fire level. |
+| AI validation | Added per-ingredient quantity check, per-step description length check (≥20 chars), expanded banned-phrase list. Retry with stricter re-prompt on second attempt. |
+| Recipe controller | Enhanced [backend/controllers/recipeController.js](../backend/controllers/recipeController.js) with input length validation, appetite sanitization, quality gates before DB save, structured logging. |
+| Recipe frontend UX | Fixed [fontend/src/pages/RecipeDetail.tsx](../fontend/src/pages/RecipeDetail.tsx): replaced ambiguous `needsGeneration` with `showForm` state, improved generating animation, Enter-key submit, form disabled during generation, dark mode, conditional "Mua tất cả" button. |
+| Mock fallback safety | Confirmed no recipe-specific mock fallback exists in httpClient. Error states are always real. |
+| DB caching | Confirmed DB-first lookup with normalized key `dish-servings-appetite`. AI is fallback only, recipes are cached permanently. |
 
 ## 5. Residual Risk Summary
 1. API route mismatch risks still present in auth and a few service calls.

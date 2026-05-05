@@ -72,9 +72,13 @@ import AdminInventoryBatches from './admin/pages/AdminInventoryBatches.tsx';
 import AdminStockMovements from './admin/pages/AdminStockMovements.tsx';
 import AdminRolesPermissions from './admin/pages/AdminRolesPermissions.tsx';
 import AdminAuditLogs from './admin/pages/AdminAuditLogs.tsx';
+import AdminBranchLocations from './admin/pages/AdminBranchLocations.tsx';
 import AdminPermissionGuard from './admin/guards/AdminPermissionGuard.tsx';
 import CarrotScene from './pages/CarrotScene.tsx';
 import About from './pages/About.tsx';
+import SmartShopping from './pages/SmartShopping.tsx';
+import SharedFamilyCart from './pages/SharedFamilyCart.tsx';
+import RecipeDetail from './pages/RecipeDetail.tsx';
 
 
 function App() {
@@ -230,6 +234,10 @@ function App() {
         <Route path="/order/track/:orderId" element={<OrderTracking />} />
         <Route path="/order/track" element={<OrderTracking />} />
         <Route path="/carrot-scene" element={<CarrotScene />} />
+        <Route path="/smart-shopping" element={<SmartShopping />} />
+        <Route path="/recipes" element={<RecipeDetail />} />
+        <Route path="/recipes/:name" element={<RecipeDetail />} />
+        <Route path="/family-cart" element={<AuthGuard><SharedFamilyCart /></AuthGuard>} />
         {/* Protected Routes */}
         <Route path="/cart" element={<AuthGuard><Cart /></AuthGuard>} />
         
@@ -284,6 +292,7 @@ function App() {
             <Route path="stock-movements" element={<AdminPermissionGuard permission="inventory.read"><AdminStockMovements /></AdminPermissionGuard>} />
             <Route path="roles" element={<AdminPermissionGuard permission="settings.read"><AdminRolesPermissions /></AdminPermissionGuard>} />
             <Route path="audit-logs" element={<AdminPermissionGuard permission="audit.read"><AdminAuditLogs /></AdminPermissionGuard>} />
+            <Route path="branch-locations" element={<AdminPermissionGuard permission="settings.read"><AdminBranchLocations /></AdminPermissionGuard>} />
           </Route>
         </Route>
 

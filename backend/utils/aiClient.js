@@ -20,7 +20,7 @@ const getCandidateModels = () => {
   return [...new Set(models)];
 };
 
-const hasGeminiKey = () => Boolean(process.env.GEMINI_API_KEY);
+const hasGeminiKey = () => Boolean(process.env.GEMINI_COMPARE_KEY);
 
 const toGeminiSchemaType = (type) => {
   const normalized = String(type || '').toLowerCase();
@@ -94,7 +94,7 @@ const parseJsonFromText = (text) => {
 };
 
 const callGemini = async (body, modelName = getGeminiModel()) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_COMPARE_KEY;
   if (!apiKey) {
     const err = new Error('AI provider is not configured');
     err.code = 'AI_NOT_READY';

@@ -162,6 +162,8 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({
           <NavItem to="/account/reviews" icon="star" label="Đánh giá" />
           <NavItem to="/account/support" icon="chat_bubble" label="Hỗ trợ" />
           <NavItem to="/account/settings" icon="settings" label="Cài đặt" />
+          <NavItem to="/family-cart" icon="family_restroom" label="Giỏ hàng gia đình" />
+          <NavItem to="/smart-shopping?tab=pricewatch" icon="notifications_active" label="Theo dõi giá" />
         </nav>
 
         <button 

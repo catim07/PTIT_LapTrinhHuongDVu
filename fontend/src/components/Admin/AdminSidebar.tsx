@@ -36,6 +36,7 @@ const menuItems: MenuItem[] = [
   { to: '/admin/stock-movements', icon: 'swap_vert', label: 'Luân chuyển tồn kho', permission: 'inventory.read', section: 'Enterprise' },
   { to: '/admin/roles', icon: 'admin_panel_settings', label: 'Vai trò & Quyền', permission: 'settings.read', section: 'Enterprise' },
   { to: '/admin/audit-logs', icon: 'history', label: 'Nhật ký hệ thống', permission: 'audit.read', section: 'Enterprise' },
+  { to: '/admin/branch-locations', icon: 'location_on', label: 'Vị trí chi nhánh', permission: 'settings.read', section: 'Enterprise' },
 
   { to: '/admin/reviews', icon: 'reviews', label: 'Quản lý đánh giá', section: 'CSKH & Trải nghiệm' },
   { to: '/admin/support', icon: 'support_agent', label: 'Hỗ trợ khách hàng', section: 'CSKH & Trải nghiệm' },

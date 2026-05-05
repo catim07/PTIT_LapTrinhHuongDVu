@@ -702,6 +702,17 @@ export const tracking = async (req, res) => {
   }
 };
 
+// Valid status transitions map
+const VALID_TRANSITIONS = {
+  PENDING:    ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED:  ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['SHIPPING', 'CANCELLED'],
+  SHIPPING:   ['DELIVERED'],
+  DELIVERED:  ['RETURNED'],
+  CANCELLED:  [],         // terminal
+  RETURNED:   [],         // terminal
+};
+
 // PUT /api/orders/:id/status
 export const updateStatus = async (req, res) => {
   try {
@@ -713,7 +724,18 @@ export const updateStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     const { status, note } = req.body;
+    if (!status) return res.status(400).json({ success: false, message: 'status is required' });
+
+    const allowed = VALID_TRANSITIONS[order.status] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển từ "${order.status}" sang "${status}". Trạng thái hợp lệ: ${allowed.join(', ') || 'không có'}`,
+      });
+    }
+
     order.status = status;
+    if (status === 'DELIVERED') order.payment.status = 'PAID';
     order.tracking.history.push({ status, note: note || '', by: req.userId, timestamp: new Date() });
     await order.save();
 

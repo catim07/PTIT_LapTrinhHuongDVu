@@ -127,13 +127,14 @@ backend/
 
 | Layer | File | Role |
 |-------|------|------|
-| UI | `component/Header/BranchSelector.tsx` | Branch selector |
+| UI | `component/Header/BranchSelector.tsx` | Map-based branch selector (Leaflet) |
+| Admin UI | `admin/pages/AdminBranchLocations.tsx` | Admin map editor for branch coordinates |
 | Service | `services/dataService.ts` | API calls |
 | Slice | `slices/branchSlice.ts` | Current branch state |
 | API | `endpoints.branches.*` | Routes |
 | Route | `routes/branches.js` | Backend |
 | Controller | `controllers/branchController.js` | Logic |
-| Model | `models/Branch.js` | Schema |
+| Model | `models/Branch.js` | Schema (coordinates.lat, coordinates.lng) |
 
 ### 3.7 Admin Module
 
@@ -477,6 +478,74 @@ After this scan, you should:
 
 ---
 
+## 13. CHANGE LOG
+
+### 2026-05-04 — Recipe System Production-Ready Overhaul
+
+**Problem:** Recipe generation page was unstable, AI outputs were too generic/vague, some results had placeholder content like "vừa đủ" or "sơ chế nguyên liệu". Mock fallback could mask real failures.
+
+**Files Changed:**
+
+| File | Change |
+|------|--------|
+| `backend/services/aiService.js` | Complete prompt rewrite with hyper-specific examples, expanded banned-phrase list (20+ phrases), stricter quality validation (ingredient quantity check, step description length check), improved retry with re-prompt, better JSON parsing with regex fence extraction |
+| `backend/controllers/recipeController.js` | Enhanced input validation (length checks, appetite sanitization), stronger quality gates before DB save, structured logging, proper error differentiation (400/500/503) |
+| `fontend/src/pages/RecipeDetail.tsx` | Fixed display logic (`showForm` state replaces ambiguous `needsGeneration`), improved generating animation (double spinner), Enter-key submit, form disabled during generation, conditional "Mua tất cả" button, full dark mode support, better error display |
+| `map_wed/feature-map.md` | Updated Recipe to Cart entry with production-ready status and full feature description |
+
+**What was NOT changed (already correct):**
+- `backend/models/Recipe.js` — Schema already has `quantity: String` which handles "200g", "1/2 tsp", "1 muỗng canh" correctly
+- `backend/routes/recipes.js` — Route registration is correct
+- `fontend/src/services/recipeService.ts` — Already has 60s timeout and correct endpoint mapping
+- `fontend/src/api/endpoints.ts` — Recipe endpoints are correctly defined
+
+**Architecture:**
+```
+User Input (dish name + servings + appetite)
+  → RecipeDetail.tsx
+  → recipeService.generateRecipe()
+  → POST /api/recipes/generate
+  → recipeController.generateUserRecipe()
+    → DB lookup (normalized_name = dish-servings-appetite)
+    → IF cached: return immediately ✅
+    → IF not cached: aiService.generateRecipe()
+      → Gemini AI (hyper-specific prompt, 2 retry attempts)
+      → JSON parse + quality validation
+      → Save to MongoDB
+      → Return to frontend
+  → RecipeDetail.tsx renders full recipe with store product matching
+```
+
+### 2026-05-04 — Admin Procurement / Import Order Flow Fixes
+
+**Problem:** The Admin "Create Import Order" flow had several issues preventing smooth procurement operations. The UI for inline product creation was broken (button text invisible due to absolute positioning), the branch selection error was ambiguous, and new products created inline were not immediately available for selection in the branch due to missing `BranchProduct` linkage.
+
+**Files Changed:**
+
+| File | Change |
+|------|--------|
+| `fontend/src/admin/pages/AdminImportOrders.tsx` | Fixed `+ Tạo mới` button layout (`flex gap-1` instead of `absolute` overlapping), improved branch validation error messaging, added accessibility `title` tags to icon buttons, and enhanced `handleInlineCreateProduct` to immediately call `productService.createBranchProduct` to link new products to the current branch. |
+
+**Architecture:**
+```
+Admin Input (Create Import Order -> Inline Product Creation)
+  → AdminImportOrders.tsx
+  → handleInlineCreateProduct
+    → productService.createProduct()
+    → IF success: productService.createBranchProduct() linking product to currentBranchId
+    → loadData() re-fetches branchProducts
+    → New product is immediately available in dropdown
+```
+
+### 5. Stabilizing Enterprise Inventory & Tailwind CDN Crash Fix (Hoàn thành)
+- **Tối ưu hóa API `getBranchProducts`**: Loại bỏ các phép join đắt đỏ (`InventoryBatch`, `Supplier`) trong quá trình tải dữ liệu mặc định của hệ thống. Các phép join này trước đây gây ra timeout 10000ms do phải xử lý hàng ngàn sản phẩm khi khởi tạo app.
+- **Khắc phục lỗi điều hướng TailwindCDN**: Nguyên nhân gốc là do Tailwind CSS CDN gặp lỗi "Maximum call stack size" khi phải scan hàng ngàn thẻ `<option>` được sinh ra cùng lúc trong quá trình load `AdminImportOrders`. Giải pháp là áp dụng **Lazy Loading** cho danh sách sản phẩm nhánh:
+  - Chỉ fetch `branchProducts` khi người dùng bấm nút "Tạo đơn nhập".
+  - Thêm trạng thái `loadingProducts` để block UI trong lúc fetch, giúp bảo vệ Tailwind CDN khỏi việc bị nghẽn DOM.
+- **Audit Routes**: Đã kiểm tra cấu hình Route trong `App.tsx` và `AdminSidebar.tsx`, đảm bảo tất cả các module (`AdminInventoryBatches`, `AdminStockMovements`, `AdminImportOrders`, `AdminImportReceipts`) được mount chính xác qua `AdminPermissionGuard`.
+
+---
+
 ## APPENDIX A: ENVIRONMENT SETUP
 
 ### Frontend (.env)
@@ -492,6 +561,9 @@ MONGODB_URI=mongodb://localhost:27017/lottemart
 JWT_SECRET=xxx
 JWT_REFRESH_SECRET=xxx
 FRONTEND_URL=http://localhost:5173
+GEMINI_RECIPE_KEY=your-gemini-api-key
+GEMINI_COMPARE_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 ### Running
@@ -521,8 +593,10 @@ cd fontend && npm run dev
 - JWT (jsonwebtoken)
 - bcryptjs
 - google-auth-library
+- @google/generative-ai (Gemini AI)
 - morgan, cors
 
 ---
 
 *End of CODE_READY_PLAN.md*
+

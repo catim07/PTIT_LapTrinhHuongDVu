@@ -3,26 +3,10 @@ import { isAIClientReady, requestJsonCompletion, requestTextCompletion } from '.
 const summarySchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['title', 'pros', 'cons', 'recommendation', 'notes'],
+  required: ['markdown'],
   properties: {
-    title: { type: 'string' },
-    pros: {
-      type: 'array',
-      maxItems: 5,
-      items: { type: 'string' },
-    },
-    cons: {
-      type: 'array',
-      maxItems: 5,
-      items: { type: 'string' },
-    },
-    recommendation: { type: 'string' },
-    notes: {
-      type: 'array',
-      maxItems: 5,
-      items: { type: 'string' },
-    },
-  },
+    markdown: { type: 'string' }
+  }
 };
 
 const normalizeLocale = (value) => {
@@ -58,11 +42,13 @@ const detectLanguageFromText = (text) => {
 const detectSummaryLanguage = (summary) => {
   if (!summary || typeof summary !== 'object') return 'unknown';
   const text = [
-    summary.title,
-    ...(Array.isArray(summary.pros) ? summary.pros : []),
-    ...(Array.isArray(summary.cons) ? summary.cons : []),
+    summary.summary,
+    summary.best_choice?.product_name,
+    summary.best_choice?.reason,
+    summary.price_analysis,
+    summary.quality_analysis,
+    summary.value_analysis,
     summary.recommendation,
-    ...(Array.isArray(summary.notes) ? summary.notes : []),
   ]
     .map((x) => String(x || '').trim())
     .filter(Boolean)
@@ -72,11 +58,12 @@ const detectSummaryLanguage = (summary) => {
 };
 
 const summarySegments = (summary) => [
-  summary?.title,
-  ...(Array.isArray(summary?.pros) ? summary.pros : []),
-  ...(Array.isArray(summary?.cons) ? summary.cons : []),
+  summary?.summary,
+  summary?.best_choice?.reason,
+  summary?.price_analysis,
+  summary?.quality_analysis,
+  summary?.value_analysis,
   summary?.recommendation,
-  ...(Array.isArray(summary?.notes) ? summary.notes : []),
 ]
   .map((x) => String(x || '').trim())
   .filter(Boolean);
@@ -114,20 +101,7 @@ const buildGroundedTitle = (products, locale = 'vi') => {
 
 const isMeaningfulSummary = (raw) => {
   if (!raw || typeof raw !== 'object') return false;
-  const pros = Array.isArray(raw.pros) ? raw.pros.filter(Boolean) : [];
-  const cons = Array.isArray(raw.cons) ? raw.cons.filter(Boolean) : [];
-  const recommendation = String(raw.recommendation || '').trim();
-  return pros.length > 0 && cons.length > 0 && recommendation.length >= 20;
-};
-
-const titleLooksGrounded = (title, products) => {
-  const normalizedTitle = String(title || '').toLowerCase();
-  if (!normalizedTitle) return false;
-  const productNames = (Array.isArray(products) ? products : [])
-    .map((p) => String(p?.name || '').toLowerCase().trim())
-    .filter(Boolean);
-  if (productNames.length === 0) return false;
-  return productNames.some((name) => normalizedTitle.includes(name.slice(0, Math.min(name.length, 12))));
+  return Boolean(raw.markdown && raw.markdown.length > 20);
 };
 
 const parseBullets = (value) => String(value || '')
@@ -137,63 +111,19 @@ const parseBullets = (value) => String(value || '')
   .slice(0, 5);
 
 const parseTextSummary = (text) => {
-  const normalized = String(text || '').replace(/\r/g, '').trim();
-  const getSection = (name, nextNames = []) => {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const next = nextNames
-      .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|');
-    const pattern = next
-      ? new RegExp(`${escaped}\\s*:\\s*([\\s\\S]*?)(?=\\n(?:${next})\\s*:|$)`, 'i')
-      : new RegExp(`${escaped}\\s*:\\s*([\\s\\S]*)`, 'i');
-    const match = normalized.match(pattern);
-    return match?.[1]?.trim() || '';
-  };
-
-  const title = getSection('TITLE', ['PROS', 'CONS', 'RECOMMENDATION', 'NOTES']) || normalized.split(/\n+/)[0] || '';
-  const pros = parseBullets(getSection('PROS', ['CONS', 'RECOMMENDATION', 'NOTES']));
-  const cons = parseBullets(getSection('CONS', ['RECOMMENDATION', 'NOTES']));
-  const recommendation = getSection('RECOMMENDATION', ['NOTES']).replace(/^[-*•]\s*/, '').trim();
-  const notes = parseBullets(getSection('NOTES'));
-
-  return {
-    title,
-    pros,
-    cons,
-    recommendation,
-    notes,
-  };
+  return null; // Forcing JSON only to avoid complex parsing of the new schema
 };
 
 const normalizeSummary = (raw, locale = 'vi', products = []) => {
   const normalizedLocale = normalizeLocale(locale);
-  const viFallback = {
-    title: buildGroundedTitle(products, 'vi'),
-    pros: ['Giá trị nổi bật được tổng hợp từ dữ liệu so sánh hiện tại.'],
-    cons: ['Một số thuộc tính còn thiếu dữ liệu nên chưa thể kết luận toàn diện.'],
-    recommendation: 'Ưu tiên sản phẩm phù hợp ngân sách, nhu cầu và tình trạng tồn kho hiện tại.',
-    notes: ['AI chỉ sử dụng dữ liệu đã cung cấp từ bảng so sánh.'],
+  const fallback = {
+    markdown: normalizedLocale === 'en' ? 'Comparison based on current data.' : 'So sánh dựa trên dữ liệu hiện tại.',
   };
-
-  const enFallback = {
-    title: buildGroundedTitle(products, 'en'),
-    pros: ['Key highlights are summarized from the current comparison data.'],
-    cons: ['Some fields are missing, so the conclusion cannot be fully comprehensive.'],
-    recommendation: 'Prioritize the product that best matches your budget, needs, and current stock status.',
-    notes: ['AI summary is grounded only on the provided comparison data.'],
-  };
-
-  const fallback = normalizedLocale === 'en' ? enFallback : viFallback;
-  const source = raw && typeof raw === 'object' ? raw : {};
-
-  const sourceTitle = String(source.title || '').trim();
-
+  
+  if (!raw || typeof raw !== 'object') return fallback;
+  
   return {
-    title: titleLooksGrounded(sourceTitle, products) ? sourceTitle : fallback.title,
-    pros: asStringArray(source.pros, fallback.pros),
-    cons: asStringArray(source.cons, fallback.cons),
-    recommendation: String(source.recommendation || fallback.recommendation).trim(),
-    notes: asStringArray(source.notes, fallback.notes),
+    markdown: String(raw.markdown || fallback.markdown),
   };
 };
 
@@ -220,7 +150,7 @@ const enforceSummaryLocale = async ({ summary, locale, products }) => {
       }),
       schema: summarySchema,
       temperature: 0.1,
-      maxTokens: 280,
+      maxTokens: 2000,
     });
 
     const normalized = normalizeSummary(rewritten, normalizedLocale, products);
@@ -259,19 +189,29 @@ export const buildCompareAISummary = async ({ products, locale = 'vi' }) => {
     'Keep output concise, practical, and UI-ready.',
   ].join(' ');
 
-  const userPrompt = JSON.stringify({
-    locale: normalizedLocale,
-    task: 'Tạo summary so sánh sản phẩm dựa trên dữ liệu thật, không bịa thông số.',
-    rules: [
-      'Không bịa giá, tồn kho, rating, review_count, hạn sử dụng, khuyến mãi, phí vận chuyển.',
-      'Nêu điểm mạnh, điểm cần cân nhắc, khác biệt nổi bật và khuyến nghị chọn mua theo nhu cầu.',
-      'Không nói đến thuộc tính không tồn tại trong dữ liệu JSON.',
-      normalizedLocale === 'en'
-        ? 'Reply strictly in English only. Do not include Vietnamese or bilingual output.'
-        : 'Reply strictly in Vietnamese only. Do not include English or bilingual output.',
-    ],
-    products,
-  });
+  const userPrompt = `
+Bạn là chuyên gia tư vấn mua sắm.
+
+Dựa vào dữ liệu sản phẩm sau:
+${JSON.stringify(products)}
+
+Hãy phân tích CHI TIẾT:
+1. So sánh giá (cụ thể từng sản phẩm)
+2. Chất lượng (dựa vào brand, mô tả)
+3. Giá trị/giá tiền
+4. Tình trạng tồn kho
+5. Kết luận:
+   👉 Sản phẩm nào nên mua? (nêu rõ lý do)
+6. Gợi ý theo nhu cầu:
+   * Tiết kiệm
+   * Chất lượng cao
+   * Cân bằng
+
+Không nói chung chung.
+Phải nêu tên sản phẩm cụ thể.
+Sử dụng emoji thích hợp.
+Trả về dữ liệu dạng JSON khớp với schema: { "markdown": "Toàn bộ bài viết markdown vào đây" }.
+`;
 
   try {
     const raw = await requestJsonCompletion({
@@ -279,7 +219,7 @@ export const buildCompareAISummary = async ({ products, locale = 'vi' }) => {
       userPrompt,
       schema: summarySchema,
       temperature: 0.1,
-      maxTokens: 280,
+      maxTokens: 2000,
     });
 
     if (isMeaningfulSummary(raw)) {
@@ -290,66 +230,12 @@ export const buildCompareAISummary = async ({ products, locale = 'vi' }) => {
       });
     }
 
-    const textPrompt = [
-      'Return plain text only in this exact format:',
-      'TITLE: ...',
-      'PROS:',
-      '- ...',
-      'CONS:',
-      '- ...',
-      'RECOMMENDATION: ...',
-      'NOTES:',
-      '- ...',
-      `Write content strictly in ${languageName(normalizedLocale)}.`,
-      'Keep section labels TITLE, PROS, CONS, RECOMMENDATION, NOTES in English exactly.',
-      '',
-      userPrompt,
-    ].join('\n');
-
-    const enrichedText = await requestTextCompletion({
-      systemPrompt,
-      userPrompt: textPrompt,
-      temperature: 0.1,
-      maxTokens: 280,
-    });
-
-    return await enforceSummaryLocale({
-      summary: normalizeSummary(parseTextSummary(enrichedText), normalizedLocale, products),
-      locale: normalizedLocale,
-      products,
-    });
+    return normalizeSummary(null, normalizedLocale, products);
   } catch (err) {
     if (err?.code === 'AI_NOT_READY' || err?.code === 'AI_AUTH_FAILED' || err?.code === 'AI_TIMEOUT' || err?.code === 'AI_QUOTA_EXCEEDED' || err?.code === 'AI_MODEL_NOT_FOUND' || err?.code === 'AI_REQUEST_FAILED') {
       throw err;
     }
-
-    const textPrompt = [
-      'Return plain text only in this exact format:',
-      'TITLE: ...',
-      'PROS:',
-      '- ...',
-      'CONS:',
-      '- ...',
-      'RECOMMENDATION: ...',
-      'NOTES:',
-      '- ...',
-      `Write content strictly in ${languageName(normalizedLocale)}.`,
-      'Keep section labels TITLE, PROS, CONS, RECOMMENDATION, NOTES in English exactly.',
-      '',
-      userPrompt,
-    ].join('\n');
-
-    const fallbackText = await requestTextCompletion({
-      systemPrompt,
-      userPrompt: textPrompt,
-      temperature: 0.1,
-      maxTokens: 280,
-    });
-
-    return await enforceSummaryLocale({
-      summary: normalizeSummary(parseTextSummary(fallbackText), normalizedLocale, products),
-      locale: normalizedLocale,
-      products,
-    });
+    console.error('[compare-summary] AI json generation failed:', err.message);
+    throw new Error('AI generation failed');
   }
 };

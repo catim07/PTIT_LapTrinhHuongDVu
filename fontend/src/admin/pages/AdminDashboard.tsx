@@ -75,7 +75,7 @@ const AdminDashboard: React.FC = () => {
           <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
           <h3 className="text-lg font-bold text-on-surface">Lỗi hệ thống</h3>
           <p className="mt-2 text-sm text-red-700">{error}</p>
-          <button onClick={fetchData} className="mt-6 px-4 py-2 bg-red-600 text-white rounded-lg font-bold text-sm shadow-sm hover:bg-red-700">Thử lại</button>
+          <button onClick={fetchData} className="mt-6 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:bg-primary-container">Thử lại</button>
         </div>
       </div>
     );
@@ -123,7 +123,7 @@ const AdminDashboard: React.FC = () => {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-shadow"
+              className="bg-primary text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Export Report

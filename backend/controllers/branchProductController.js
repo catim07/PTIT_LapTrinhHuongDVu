@@ -67,22 +67,26 @@ export const list = async (req, res) => {
       if (p.id) productMap[String(p.id)] = p;
     });
 
+    const isInventoryView = req.query.inventory === 'true';
+
     const bpIds = bps.map(bp => bp._id);
 
-    // Fetch batches to find expiry and supplier
-    const batches = await InventoryBatch.find({ branch_product_id: { $in: bpIds }, quantity: { $gt: 0 } }).lean();
+    // Fetch batches to find expiry and supplier ONLY if inventory view
+    const batches = isInventoryView ? await InventoryBatch.find({ branch_product_id: { $in: bpIds }, quantity: { $gt: 0 } }).lean() : [];
     
     // Process batches per branch product
     const bpBatchesMap = {};
-    batches.forEach(b => {
-      const bpid = String(b.branch_product_id);
-      if (!bpBatchesMap[bpid]) bpBatchesMap[bpid] = [];
-      bpBatchesMap[bpid].push(b);
-    });
+    if (isInventoryView) {
+      batches.forEach(b => {
+        const bpid = String(b.branch_product_id);
+        if (!bpBatchesMap[bpid]) bpBatchesMap[bpid] = [];
+        bpBatchesMap[bpid].push(b);
+      });
+    }
 
     // Extract categories & suppliers
     const categoryIds = [...new Set(products.map(p => p.category_id).filter(id => id && id !== 'null'))];
-    const supplierIds = [...new Set(batches.map(b => b.supplier_id).filter(Boolean))];
+    const supplierIds = isInventoryView ? [...new Set(batches.map(b => b.supplier_id).filter(Boolean))] : [];
 
     const [categories, suppliers] = await Promise.all([
       categoryIds.length > 0 ? Category.find({ _id: { $in: categoryIds } }).lean() : Promise.resolve([]),
@@ -93,7 +97,9 @@ export const list = async (req, res) => {
     categories.forEach(c => { catMap[String(c._id)] = c; });
 
     const suppMap = {};
-    suppliers.forEach(s => { suppMap[String(s._id)] = s; });
+    if (isInventoryView) {
+      suppliers.forEach(s => { suppMap[String(s._id)] = s; });
+    }
 
     const now = new Date();
 
@@ -116,40 +122,47 @@ export const list = async (req, res) => {
         obj.category_name = bp.category_name || '';
       }
 
-      // Find earliest expiring batch for this BP
-      const myBatches = bpBatchesMap[String(bp._id)] || [];
-      const expBatches = myBatches.filter(b => b.exp_date).sort((a, b) => new Date(a.exp_date) - new Date(b.exp_date));
-      const earliestBatch = expBatches.length > 0 ? expBatches[0] : (myBatches.length > 0 ? myBatches[0] : null);
-
       let days_until_expiry = null;
       let expiry_status = 'ok';
-      // Use batch exp_date first, fallback to BP's own expiry_date
-      const effectiveExpDate = (earliestBatch && earliestBatch.exp_date)
-        ? earliestBatch.exp_date
-        : (bp.expiry_date || null);
-      if (effectiveExpDate) {
-        const diffMs = new Date(effectiveExpDate).getTime() - now.getTime();
-        days_until_expiry = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        if (days_until_expiry < 0) expiry_status = 'expired';
-        else if (days_until_expiry <= 7) expiry_status = 'critical';
-        else if (days_until_expiry <= 30) expiry_status = 'warning';
+      let earliestBatch = null;
+
+      if (isInventoryView) {
+        // Find earliest expiring batch for this BP
+        const myBatches = bpBatchesMap[String(bp._id)] || [];
+        const expBatches = myBatches.filter(b => b.exp_date).sort((a, b) => new Date(a.exp_date).getTime() - new Date(b.exp_date).getTime());
+        earliestBatch = expBatches.length > 0 ? expBatches[0] : (myBatches.length > 0 ? myBatches[0] : null);
+
+        // Use batch exp_date first, fallback to BP's own expiry_date
+        const effectiveExpDate = (earliestBatch && earliestBatch.exp_date)
+          ? earliestBatch.exp_date
+          : (bp.expiry_date || null);
+        if (effectiveExpDate) {
+          const diffMs = new Date(effectiveExpDate).getTime() - now.getTime();
+          days_until_expiry = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          if (days_until_expiry < 0) expiry_status = 'expired';
+          else if (days_until_expiry <= 7) expiry_status = 'critical';
+          else if (days_until_expiry <= 30) expiry_status = 'warning';
+        }
+
+        const supplier = earliestBatch && earliestBatch.supplier_id ? suppMap[String(earliestBatch.supplier_id)] : null;
+
+        obj.exp_date = earliestBatch ? earliestBatch.exp_date : (bp.expiry_date || null);
+        obj.days_until_expiry = days_until_expiry;
+        obj.expiry_status = expiry_status;
+        // Fallback: use BP's own saved supplier_name if join returns nothing
+        obj.supplier_name = supplier ? supplier.name : (bp.supplier_name || null);
+        obj.supplier_code = supplier ? supplier.code : null;
       }
-
-      const supplier = earliestBatch && earliestBatch.supplier_id ? suppMap[String(earliestBatch.supplier_id)] : null;
-
-      obj.exp_date = earliestBatch ? earliestBatch.exp_date : (bp.expiry_date || null);
-      obj.days_until_expiry = days_until_expiry;
-      obj.expiry_status = expiry_status;
-      // Fallback: use BP's own saved supplier_name if join returns nothing
-      obj.supplier_name = supplier ? supplier.name : (bp.supplier_name || null);
-      obj.supplier_code = supplier ? supplier.code : null;
 
       // Calculate Semantic Badges
       const badges = [];
       if (category) badges.push({ type: 'category', text: category.name, color: 'blue' });
-      if (expiry_status === 'expired') badges.push({ type: 'expiry', text: 'Hết hạn', color: 'red' });
-      else if (expiry_status === 'critical') badges.push({ type: 'expiry', text: 'Sắp hết hạn', color: 'orange' });
-      else if (expiry_status === 'warning') badges.push({ type: 'expiry', text: `Tới hạn: ${days_until_expiry} ngày`, color: 'yellow' });
+      
+      if (isInventoryView) {
+        if (expiry_status === 'expired') badges.push({ type: 'expiry', text: 'Hết hạn', color: 'red' });
+        else if (expiry_status === 'critical') badges.push({ type: 'expiry', text: 'Sắp hết hạn', color: 'orange' });
+        else if (expiry_status === 'warning') badges.push({ type: 'expiry', text: `Tới hạn: ${days_until_expiry} ngày`, color: 'yellow' });
+      }
       
       if (obj.stock <= (obj.min_stock || 5)) badges.push({ type: 'stock', text: 'Tồn thấp', color: 'red' });
       if (prod && prod.is_new) badges.push({ type: 'new', text: 'Nhập mới', color: 'emerald' });

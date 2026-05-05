@@ -160,6 +160,8 @@ const run = async () => {
     _id: makeId(b.id),
     name: b.name, address: b.address || '', city: b.city || '', phone: b.phone || '',
     manager: b.manager || '', is_active: b.is_active !== false,
+    operating_hours: b.operating_hours || '08:00 - 22:00',
+    coordinates: b.coordinates || null,
   }))).catch(() => []);
   console.log(`Seeded ${branches.length} branches`);
 

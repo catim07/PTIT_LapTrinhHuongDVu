@@ -21,7 +21,7 @@ const AdminLayout: React.FC = () => {
   }
 
   return (
-    <div className="bg-surface text-on-surface antialiased min-h-screen overflow-hidden flex">
+    <div className="bg-surface dark:bg-slate-900 text-on-surface dark:text-slate-200 antialiased min-h-screen overflow-hidden flex transition-colors">
       <AdminSidebar />
       <main className="ml-64 flex-1 h-screen flex flex-col relative">
         <AdminHeader />

@@ -11,7 +11,7 @@ const AdminLotteMartCouponManagement: React.FC = () => {
                 <h2 className="text-[2.75rem] font-extrabold tracking-tight text-on-surface leading-tight">Coupon Management</h2>
                 <p className="text-on-surface-variant font-medium mt-2">Manage customer incentives and promotional vouchers across all branches.</p>
               </div>
-              <button className="bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+              <button className="bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
                 <span className="material-symbols-outlined">add_circle</span>
                 Tạo mã mới
               </button>
@@ -327,7 +327,7 @@ const AdminLotteMartCouponManagement: React.FC = () => {
             </div>
             <div className="px-8 py-6 bg-surface-container-low/50 border-t border-surface-container flex justify-end gap-4">
               <button className="text-slate-500 font-bold px-6 py-2.5 rounded-xl hover:bg-surface-container-high transition-colors">Cancel</button>
-              <button className="bg-gradient-to-r from-primary to-primary-container text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Create Coupon</button>
+              <button className="bg-primary hover:bg-primary-container text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Create Coupon</button>
             </div>
           </div>
         </div>

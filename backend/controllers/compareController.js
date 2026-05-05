@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import BranchProduct from '../models/BranchProduct.js';
+import CompareSummary from '../models/CompareSummary.js';
 import { buildCompareAISummary, isCompareAISummaryReady } from '../services/aiSummaryService.js';
 
 const MAX_PRODUCTS = 4;
@@ -138,6 +139,22 @@ export const summary = async (req, res) => {
       });
     }
 
+    const sortedIds = requestedIds.slice().sort();
+    const cacheHash = `${sortedIds.join('-')}-${locale}`;
+
+    try {
+      const cached = await CompareSummary.findOne({ hash: cacheHash });
+      if (cached) {
+        console.info(`[compare-summary] Cache hit for hash=${cacheHash}`);
+        cached.access_count += 1;
+        cached.last_accessed_at = new Date();
+        await cached.save();
+        return res.json({ success: true, summary: cached.summary });
+      }
+    } catch (cacheErr) {
+      console.warn('[compare-summary] Cache lookup failed:', cacheErr.message);
+    }
+
     const incomingMap = new Map(
       requestedProducts.map((item) => [String(item?.product_id || item?.id || '').trim(), item || {}]),
     );
@@ -208,6 +225,18 @@ export const summary = async (req, res) => {
       locale,
     });
 
+    try {
+      await CompareSummary.create({
+        product_ids: sortedIds,
+        hash: cacheHash,
+        locale,
+        summary: aiSummary
+      });
+      console.info(`[compare-summary] Cached new summary for hash=${cacheHash}`);
+    } catch (saveErr) {
+      console.warn('[compare-summary] Failed to cache summary:', saveErr.message);
+    }
+
     return res.json({
       success: true,
       summary: aiSummary,
@@ -219,7 +248,7 @@ export const summary = async (req, res) => {
       return res.status(503).json({
         success: false,
         aiReady: false,
-        message: localeText(locale, 'AI chua san sang. Vui long cau hinh GEMINI_API_KEY o backend.', 'AI is not ready. Please configure GEMINI_API_KEY in backend.'),
+        message: localeText(locale, 'AI chua san sang. Vui long cau hinh GEMINI_COMPARE_API_KEY o backend.', 'AI is not ready. Please configure GEMINI_COMPARE_API_KEY in backend.'),
       });
     }
 

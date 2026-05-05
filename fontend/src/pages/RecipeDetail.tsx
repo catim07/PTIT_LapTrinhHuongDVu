@@ -1,0 +1,460 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { recipeService } from '../services/recipeService';
+import { useBranchData } from '../hooks/useBranchData';
+import { useAppDispatch, useAppSelector } from '../store';
+import { addToCartAsync } from '../slices/cartSlice';
+import { useAuthRedirect } from '../hooks/useAuthRedirect';
+import { toast } from '../components/Toast/toastEvent';
+
+const RecipeDetail: React.FC = () => {
+  const { name } = useParams<{ name: string }>();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isAuthenticated } = useAppSelector(s => s.auth);
+  const redirectToLogin = useAuthRedirect();
+  const { currentBranchId, availableProducts } = useBranchData();
+
+  const [recipe, setRecipe] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Generation form
+  const [dishName, setDishName] = useState('');
+  const [servings, setServings] = useState(2);
+  const [appetite, setAppetite] = useState('normal');
+  const [generating, setGenerating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  // On mount: if URL has a name param, try to fetch from DB
+  useEffect(() => {
+    if (!name) {
+      setShowForm(true);
+      return;
+    }
+    const decoded = decodeURIComponent(name).replace(/-/g, ' ');
+    setDishName(decoded);
+
+    const fetchRecipe = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await recipeService.getRecipeByName(name);
+        if (res.success && res.data) {
+          setRecipe(res.data);
+          setServings(res.data.servings || 2);
+          setShowForm(false);
+        } else {
+          setShowForm(true);
+        }
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setShowForm(true);
+        } else {
+          setError(err?.response?.data?.message || err?.message || 'Lỗi hệ thống');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecipe();
+  }, [name]);
+
+  const handleGenerate = async () => {
+    const trimmed = dishName.trim();
+    if (!trimmed) {
+      toast.warning('Vui lòng nhập tên món ăn');
+      return;
+    }
+    if (trimmed.length < 2) {
+      toast.warning('Tên món ăn quá ngắn (tối thiểu 2 ký tự)');
+      return;
+    }
+    if (servings < 1 || servings > 10) {
+      toast.warning('Số người ăn phải từ 1-10');
+      return;
+    }
+
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await recipeService.generateRecipe({
+        dishName: trimmed,
+        servings,
+        appetite
+      });
+      if (res.success && res.data) {
+        setRecipe(res.data);
+        setShowForm(false);
+        toast.success(res.cached ? '✅ Đã tìm thấy công thức có sẵn!' : '🧑‍🍳 Tạo công thức thành công bằng AI!');
+      } else {
+        setError(res.message || 'Không thể tạo công thức. Vui lòng thử lại.');
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Không thể kết nối server. Vui lòng thử lại.';
+      setError(msg);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Match ingredients to store products
+  const matchedIngredients = React.useMemo(() => {
+    if (!recipe?.ingredients) return [];
+    return recipe.ingredients.map((ing: any) => {
+      const match = (availableProducts || []).find((p: any) =>
+        p?.name?.toLowerCase().includes(ing.name.toLowerCase())
+      );
+      return { ingredient: ing, product: match || null };
+    });
+  }, [recipe, availableProducts]);
+
+  const addToCart = async (item: any) => {
+    if (!currentBranchId) { toast.error('Chọn chi nhánh trước'); return; }
+    if (!isAuthenticated) { redirectToLogin({ action: 'add_to_cart' }); return; }
+    try {
+      await dispatch(addToCartAsync({
+        branchId: currentBranchId,
+        branch_product_id: String(item?.branch_product_id || item?._id || item?.id),
+        price: Number(item?.price || 0), unit_price: Number(item?.price || 0), quantity: 1,
+        product_name: item?.name, product_image: item?.images?.[0] || item?.thumbnail || '',
+        branchProduct: item,
+      })).unwrap();
+      toast.success(`Đã thêm ${item?.name}`);
+    } catch (e: any) { toast.error(e?.message || 'Lỗi'); }
+  };
+
+  const addAllToCart = async () => {
+    const available = matchedIngredients.filter((m: any) => m.product);
+    if (available.length === 0) {
+      toast.warning('Không có nguyên liệu nào có sẵn tại chi nhánh.');
+      return;
+    }
+    for (const m of available) await addToCart(m.product);
+    toast.success(`Đã thêm ${available.length} sản phẩm vào giỏ!`);
+  };
+
+  const formatPrice = (n: number) => n.toLocaleString('vi-VN');
+
+  // ── LOADING STATE ──
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="animate-spin w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <h2 className="text-xl font-bold text-slate-700">Đang tìm công thức...</h2>
+      </div>
+    );
+  }
+
+  // ── ERROR STATE (fatal, no recipe, not in generation flow) ──
+  if (error && !showForm && !recipe && !generating) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <span className="material-symbols-outlined !text-6xl text-red-400 mb-4 block">error</span>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Lỗi tải công thức</h2>
+        <p className="text-slate-600 mb-6">{error}</p>
+        <div className="flex gap-3 justify-center">
+          <button onClick={() => { setError(null); setShowForm(true); }} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">Thử tạo mới</button>
+          <button onClick={() => navigate(-1)} className="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300">Quay lại</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-20">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold mb-6 transition-colors">
+        <span className="material-symbols-outlined">arrow_back</span> Quay lại
+      </button>
+
+      {/* ── GENERATION FORM ── */}
+      {(showForm || recipe) && (
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-indigo-500">smart_toy</span>
+            {recipe ? 'Tạo công thức khác' : 'Tạo công thức bằng AI'}
+          </h3>
+
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* Dish name input */}
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tên món ăn <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                id="recipe-dish-name"
+                value={dishName}
+                onChange={(e) => setDishName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && dishName.trim() && !generating) handleGenerate(); }}
+                placeholder="VD: Thịt kho tàu, Phở bò, Bún chả..."
+                maxLength={100}
+                className="w-full px-4 py-2.5 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                disabled={generating}
+              />
+            </div>
+
+            {/* Servings */}
+            <div>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Số người ăn <span className="text-red-500">*</span></label>
+              <select
+                id="recipe-servings"
+                value={servings}
+                onChange={(e) => setServings(Number(e.target.value))}
+                className="w-28 px-3 py-2.5 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={generating}
+              >
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <option key={n} value={n}>{n} người</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Appetite */}
+            <div>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Sức ăn</label>
+              <select
+                id="recipe-appetite"
+                value={appetite}
+                onChange={(e) => setAppetite(e.target.value)}
+                className="w-36 px-3 py-2.5 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={generating}
+              >
+                <option value="small">Ít</option>
+                <option value="normal">Vừa</option>
+                <option value="large">Nhiều</option>
+              </select>
+            </div>
+
+            {/* Generate button */}
+            <button
+              id="recipe-generate-btn"
+              onClick={handleGenerate}
+              disabled={!dishName.trim() || dishName.trim().length < 2 || generating}
+              className={`px-6 py-2.5 rounded-lg font-bold text-white transition-all ${
+                (!dishName.trim() || dishName.trim().length < 2 || generating)
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 hover:shadow-xl hover:shadow-indigo-600/30 active:scale-[0.98]'
+              }`}
+            >
+              {generating ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                  Đang tạo...
+                </span>
+              ) : recipe ? '🔄 Tạo lại' : '🧑‍🍳 Tạo công thức'}
+            </button>
+          </div>
+
+          {/* Error message inside form */}
+          {error && (
+            <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
+              <span className="material-symbols-outlined !text-base mt-0.5 shrink-0">warning</span>
+              <div>
+                <p className="font-bold mb-0.5">Không thể tạo công thức</p>
+                <p>{error}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── GENERATING OVERLAY ── */}
+      {generating && (
+        <div className="text-center py-16">
+          <div className="relative mx-auto w-20 h-20 mb-6">
+            <div className="absolute inset-0 animate-spin border-4 border-indigo-200 border-t-indigo-600 rounded-full"></div>
+            <div className="absolute inset-2 animate-spin border-4 border-purple-200 border-b-purple-600 rounded-full" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
+            <span className="absolute inset-0 flex items-center justify-center text-2xl">🧑‍🍳</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2">AI đang tạo công thức...</h2>
+          <p className="text-slate-500 dark:text-slate-400">Đang phân tích "<span className="font-bold text-indigo-600">{dishName}</span>" cho <span className="font-bold">{servings}</span> người ăn</p>
+          <p className="text-slate-400 text-sm mt-2">Quá trình này mất khoảng 15-30 giây</p>
+          <div className="mt-6 max-w-xs mx-auto">
+            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full animate-pulse" style={{width: '60%', animation: 'pulse 2s ease-in-out infinite'}}></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RECIPE DISPLAY ── */}
+      {recipe && !generating && (
+        <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-xl border border-slate-100 dark:border-slate-700">
+
+          {/* Header */}
+          <div className="relative h-64 bg-slate-200">
+            {recipe.image_url ? (
+              <img src={recipe.image_url} alt={recipe.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-indigo-900/30 dark:via-purple-900/20 dark:to-pink-900/30 flex items-center justify-center">
+                <span className="material-symbols-outlined !text-7xl text-indigo-300 dark:text-indigo-600">restaurant</span>
+              </div>
+            )}
+            <div className="absolute top-4 right-4 flex gap-2">
+              {recipe.ai_generated ? (
+                <span className="bg-indigo-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                  <span className="material-symbols-outlined !text-sm">smart_toy</span> AI Generated
+                </span>
+              ) : (
+                <span className="bg-green-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                  <span className="material-symbols-outlined !text-sm">verified</span> Saved Recipe
+                </span>
+              )}
+            </div>
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white dark:from-slate-800 to-transparent"></div>
+          </div>
+
+          <div className="p-6 md:p-10">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-3">{recipe.title}</h1>
+            {recipe.description && <p className="text-slate-600 dark:text-slate-300 text-lg mb-8 leading-relaxed">{recipe.description}</p>}
+
+            {/* Info cards */}
+            <div className="flex flex-wrap gap-4 mb-10">
+              {[
+                { icon: 'schedule', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20', label: 'Chuẩn bị', value: recipe.prep_time },
+                { icon: 'local_fire_department', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20', label: 'Nấu', value: recipe.cook_time },
+                { icon: 'restaurant', color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20', label: 'Khẩu phần', value: recipe.servings ? `${recipe.servings} người` : null },
+                { icon: 'fitness_center', color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20', label: 'Độ khó', value: recipe.difficulty },
+              ].filter(c => c.value).map((card, i) => (
+                <div key={i} className={`flex items-center gap-3 ${card.bg} px-5 py-3 rounded-xl border border-slate-100 dark:border-slate-700`}>
+                  <span className={`material-symbols-outlined ${card.color} !text-2xl`}>{card.icon}</span>
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
+                    <p className="font-bold text-slate-700 dark:text-white text-lg">{card.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+              {/* Ingredients */}
+              <div className="lg:col-span-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-black flex items-center gap-2 text-slate-800 dark:text-white">
+                    <span className="material-symbols-outlined text-indigo-500">grocery</span>
+                    Nguyên liệu ({recipe.ingredients?.length || 0})
+                  </h2>
+                  {matchedIngredients.some((m: any) => m.product) && (
+                    <button onClick={addAllToCart} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all active:scale-[0.98]">
+                      <span className="material-symbols-outlined !text-base">shopping_cart</span> Mua tất cả
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {matchedIngredients.map((m: any, idx: number) => (
+                    <div key={idx} className={`p-3 rounded-xl border transition-all ${m.product ? 'border-green-200 bg-green-50/50 dark:bg-green-900/10 dark:border-green-800' : 'border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700'}`}>
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{m.ingredient.name}</span>
+                        </div>
+                        {(m.ingredient.quantity || m.ingredient.unit) && (
+                          <span className="text-xs font-bold text-slate-500 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-lg border border-slate-100 dark:border-slate-600 whitespace-nowrap ml-2">
+                            {m.ingredient.quantity}{m.ingredient.unit ? ` ${m.ingredient.unit}` : ''}
+                          </span>
+                        )}
+                      </div>
+                      {m.ingredient.note && <p className="text-xs text-slate-400 italic ml-4 mt-0.5">→ {m.ingredient.note}</p>}
+                      <div className="ml-4 mt-2">
+                        {m.product ? (
+                          <div className="flex items-center gap-2 bg-white dark:bg-slate-700 p-2 rounded-lg border border-green-100 dark:border-green-800 shadow-sm">
+                            <img src={m.product.images?.[0] || m.product.thumbnail || ''} alt="" className="w-8 h-8 rounded-md object-cover bg-slate-100" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{m.product.name}</p>
+                              <p className="text-xs font-black text-rose-600">{formatPrice(m.product.price)}₫</p>
+                            </div>
+                            <button onClick={() => addToCart(m.product)} className="w-8 h-8 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center transition-colors active:scale-95">
+                              <span className="material-symbols-outlined !text-sm">add</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/10 p-2 rounded-lg border border-orange-100 dark:border-orange-800">
+                            <span className="material-symbols-outlined text-orange-400 !text-sm">info</span>
+                            <span className="text-xs text-orange-600 dark:text-orange-400">Không có sẵn tại chi nhánh</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="lg:col-span-7">
+                <h2 className="text-xl font-black flex items-center gap-2 text-slate-800 dark:text-white mb-6">
+                  <span className="material-symbols-outlined text-indigo-500">menu_book</span>
+                  Cách làm ({recipe.steps?.length || 0} bước)
+                </h2>
+                <div className="space-y-6">
+                  {recipe.steps?.map((step: any, idx: number) => (
+                    <div key={idx} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-black flex items-center justify-center shrink-0 text-sm">
+                          {step.step || idx + 1}
+                        </div>
+                        {idx !== (recipe.steps?.length || 0) - 1 && <div className="w-0.5 flex-1 bg-indigo-100 dark:bg-slate-700 mt-2 min-h-[20px]"></div>}
+                      </div>
+                      <div className="pb-6 flex-1">
+                        <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2 flex-wrap">
+                          {step.title || `Bước ${step.step || idx + 1}`}
+                          {step.duration && (
+                            <span className="text-xs font-normal bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">
+                              ⏱ {step.duration}
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tips */}
+                {recipe.tips?.length > 0 && (
+                  <div className="mt-8 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-2xl p-5">
+                    <h3 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined !text-lg">lightbulb</span> Mẹo & Lưu ý
+                    </h3>
+                    <ul className="space-y-2">
+                      {recipe.tips.map((tip: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-amber-700 dark:text-amber-400 text-sm">
+                          <span className="text-amber-500 mt-0.5 shrink-0">💡</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {recipe.tags?.length > 0 && (
+                  <div className="mt-8 flex flex-wrap gap-2">
+                    {recipe.tags.map((tag: string, i: number) => (
+                      <span key={i} className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state when needs generation but no recipe yet */}
+      {showForm && !recipe && !generating && !error && (
+        <div className="text-center py-16">
+          <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/20 rounded-full mx-auto mb-6 flex items-center justify-center">
+            <span className="material-symbols-outlined !text-5xl text-indigo-300 dark:text-indigo-600">restaurant_menu</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2">Chưa có công thức</h2>
+          <p className="text-slate-400 max-w-md mx-auto">Nhập tên món ăn phía trên và nhấn "<span className="font-bold text-indigo-500">Tạo công thức</span>" để AI tạo công thức nấu ăn chi tiết cho bạn</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RecipeDetail;

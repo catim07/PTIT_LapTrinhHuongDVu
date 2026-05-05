@@ -35,7 +35,7 @@ export const orderSlice = createSlice({
     },
     cancelOrder: (state, action: PayloadAction<string>) => {
       const order = state.data.find(o => String(o.id) === action.payload);
-      if (order && ['PENDING', 'PROCESSING'].includes(order.status)) {
+      if (order && ['PENDING', 'CONFIRMED'].includes(order.status)) {
         order.status = 'CANCELLED';
       }
     }

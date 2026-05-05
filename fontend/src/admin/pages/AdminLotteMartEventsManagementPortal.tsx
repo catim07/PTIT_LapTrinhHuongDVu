@@ -411,7 +411,7 @@ const AdminLotteMartEventsManagementPortal: React.FC = () => {
         </div>
         <button
           onClick={openCreateForm}
-          className="bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
+          className="bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
         >
           <span className="material-symbols-outlined">add</span>
           Tạo bài viết
@@ -501,8 +501,10 @@ const AdminLotteMartEventsManagementPortal: React.FC = () => {
           {/* Controls Bar */}
           <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container/50 p-4 flex flex-col gap-4 lg:flex-row lg:items-center justify-between">
             {/* Search */}
-            <div className="relative flex-1 max-w-sm">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+            <div className="relative flex-1 max-w-sm flex items-center">
+              <div className="absolute left-0 top-0 h-full w-10 flex items-center justify-center pointer-events-none">
+                <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block">search</span>
+              </div>
               <input
                 className="w-full bg-surface-container-low border-none rounded-xl py-2.5 pl-9 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
                 placeholder="Tìm tiêu đề, tags, nội dung..."
@@ -891,7 +893,7 @@ const AdminLotteMartEventsManagementPortal: React.FC = () => {
                     <button
                       onClick={handleCreate}
                       disabled={saving}
-                      className="w-full min-h-[48px] bg-gradient-to-r from-primary to-primary-container hover:from-primary/90 hover:to-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 whitespace-nowrap"
+                      className="w-full min-h-[48px] bg-primary hover:bg-primary-container text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 whitespace-nowrap"
                     >
                       {saving ? (
                         <><span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> Đang xử lý...</>
@@ -904,7 +906,7 @@ const AdminLotteMartEventsManagementPortal: React.FC = () => {
                       <button
                         onClick={handleUpdate}
                         disabled={saving}
-                        className="w-full min-h-[48px] bg-gradient-to-r from-primary to-primary-container hover:from-primary/90 hover:to-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 whitespace-nowrap"
+                        className="w-full min-h-[48px] bg-primary hover:bg-primary-container text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 whitespace-nowrap"
                       >
                          {saving ? (
                           <><span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> Đang xử lý...</>

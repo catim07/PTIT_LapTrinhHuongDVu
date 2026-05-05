@@ -134,7 +134,7 @@ const AdminLogin: React.FC = () => {
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-primary hover:bg-primary-container text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {status === 'loading' ? 'Đang đăng nhập...' : 'Đăng nhập hệ thống'}
               <span className="material-symbols-outlined text-[20px]">{status === 'loading' ? 'hourglass_empty' : 'login'}</span>

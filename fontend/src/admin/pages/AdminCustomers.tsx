@@ -285,8 +285,10 @@ const AdminCustomers: React.FC = () => {
           <div className="flex-1 overflow-x-auto min-h-[600px]">
             {/* Filter Bar */}
             <div className="p-6 border-b border-slate-100/50 flex flex-wrap gap-4 items-center">
-              <div className="flex-1 min-w-[280px] relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+              <div className="flex-1 min-w-[280px] relative flex items-center">
+                <div className="absolute left-0 top-0 h-full w-10 flex items-center justify-center pointer-events-none">
+                  <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block">search</span>
+                </div>
                 <input
                   className="w-full bg-surface-container-low border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400"
                   placeholder="Tìm kiếm: Tên, ID, SDT, Email..."

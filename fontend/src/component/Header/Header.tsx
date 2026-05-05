@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import HeaderProfile from "./HeaderProfile";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { setCurrentBranch, loadBranches } from "../../slices/branchSlice";
+import BranchSelector from "./BranchSelector";
 // import { clearCart } from "../../slices/cartSlice";
 import { dataService } from "../../services/dataService";
 import { setDefaultLanguageFromSettings } from "../../i18n";
@@ -48,6 +49,7 @@ const Header: React.FC = () => {
 
   const navItems = [
     { label: t("nav.home"), path: "/home" },
+    { label: t("Smart Shopping"), path: "/smart-shopping" },
     { label: t("About"), path: "/about" },
     { label: t("nav.products"), path: "/products" },
     { label: t("nav.shopAtHome"), path: "/shop-at-home" },
@@ -101,15 +103,7 @@ const Header: React.FC = () => {
   }, [search, currentBranchId]);
 
   // ─── Branch selector handler ─────────────────
-  const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value;
-    const selected = branches.find(
-      (b) => String(b.id || (b as any)._id) === id
-    );
-    if (!selected) return;
-
-    dispatch(setCurrentBranch(selected));
-  };
+  // Moved to BranchSelector component
 
   // ─── Language selector handler ───────────────
   const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -142,38 +136,9 @@ const Header: React.FC = () => {
           color: "rgba(255,255,255,0.85)",
         }}
       >
-        {/* Left — Branch selector (looks like plain text) */}
+        {/* Left — Branch selector */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 14 }}>📍</span>
-          <select
-            id="branch-select"
-            value={currentBranchId}
-            onChange={handleBranchChange}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              outline: "none",
-              maxWidth: 220,
-              WebkitAppearance: "none" as any,
-              MozAppearance: "none" as any,
-              appearance: "none" as any,
-              paddingRight: 14,
-            }}
-          >
-            {branches.filter((b) => b.is_active !== false).map((b) => {
-              const bId = String(b.id || (b as any)?._id || "");
-              return (
-                <option key={bId} value={bId} style={{ color: "#333", background: "white" }}>
-                  {b.name}
-                </option>
-              );
-            })}
-          </select>
-          <span style={{ fontSize: 10, opacity: 0.7, marginLeft: -10 }}>▾</span>
+          <BranchSelector />
         </div>
 
         {/* Right — Member + Language selector (same transparent-text style) */}

@@ -156,8 +156,10 @@ const AdminLotteMartCustomerManagement: React.FC = () => {
         {/* TopNavBar */}
         <header className="sticky top-0 w-full z-40 bg-[#f7f9fb] border-b border-slate-200/50 shadow-sm flex justify-between items-center px-8 py-3 ml-64 max-w-[calc(100%-16rem)]">
           <div className="flex items-center flex-1 max-w-xl">
-            <div className="relative w-full group">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+            <div className="relative w-full group flex items-center">
+              <div className="absolute left-0 top-0 h-full w-10 flex items-center justify-center pointer-events-none">
+                <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block">search</span>
+              </div>
               <input
                 className="w-full bg-surface-container-lowest border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400"
                 placeholder="Tìm kiếm khách hàng, đơn hàng..."

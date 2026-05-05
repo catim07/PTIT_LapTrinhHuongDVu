@@ -44,6 +44,7 @@ import stockMovementRoutes from './routes/stockMovements.js';
 import importOrderRoutes from './routes/importOrders.js';
 import importReceiptRoutes from './routes/importReceipts.js';
 import uploadRoutes from './routes/uploads.js';
+import recipeRoutes from './routes/recipes.js';
 
 // Enterprise Modules
 import supplierRoutes from './routes/suppliers.js';
@@ -224,6 +225,7 @@ apiRouter.use('/stock-movements', stockMovementRoutes);
 apiRouter.use('/import-orders', importOrderRoutes);
 apiRouter.use('/import-receipts', importReceiptRoutes);
 apiRouter.use('/uploads', uploadRoutes);
+apiRouter.use('/recipes', recipeRoutes);
 
 apiRouter.use('/suppliers', supplierRoutes);
 apiRouter.use('/purchase-orders', purchaseOrderRoutes);

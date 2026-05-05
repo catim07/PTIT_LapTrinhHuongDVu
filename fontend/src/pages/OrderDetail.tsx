@@ -5,6 +5,7 @@ import { loadOrders, cancelOrderThunk } from '../slices/orderSlice';
 import { reorderFromOrder } from '../slices/cartSlice';
 import { toast } from '../components/Toast/toastEvent';
 import { dataService } from '../services/dataService';
+import { supportService } from '../services/supportService';
 
 const OrderDetail: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -22,7 +23,11 @@ const OrderDetail: React.FC = () => {
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [supportIssue, setSupportIssue] = useState('');
+  const [supportCategory, setSupportCategory] = useState('order_issue');
   
   const order = orders.find(o => String(o.id) === orderId);
 
@@ -35,19 +40,46 @@ const OrderDetail: React.FC = () => {
   if (status === 'loading') return <div className="text-center p-10 font-bold">Đang tải chi tiết đơn hàng...</div>;
   if (!order) return <div className="text-center p-10"><p className="text-slate-500">Không tìm thấy đơn hàng</p></div>;
 
-  const CANCELLABLE_STATUSES = ['PENDING', 'PROCESSING'];
+  const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
   const isCancellable = CANCELLABLE_STATUSES.includes(order.status);
+  const isShippedOrLater = ['SHIPPING', 'DELIVERED', 'RETURNED'].includes(order.status);
   const isCompletedOrCancelled = ['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(order.status);
 
   const handleCancelOrder = async () => {
+    if (!cancelReason.trim()) return toast.error('Vui lòng nhập lý do hủy đơn');
     setIsProcessing(true);
     try {
-      const reason = "Khách hàng đổi ý"; // Could be customized via modal input
-      await dispatch(cancelOrderThunk({id: String(order.id), reason})).unwrap();
+      await dispatch(cancelOrderThunk({id: String(order.id), reason: cancelReason})).unwrap();
       setShowCancelModal(false);
-      toast.success("Hủy đơn hàng thành công!");
+      setCancelReason('');
+      toast.success('Hủy đơn hàng thành công!');
     } catch (err: any) {
       toast.error(err.message || 'Lỗi khi hủy đơn hàng');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleContactSupport = async () => {
+    if (!supportIssue.trim()) return toast.error('Vui lòng mô tả vấn đề của bạn');
+    setIsProcessing(true);
+    try {
+      const res = await supportService.createTicket({
+        subject: `Hỗ trợ đơn hàng #${order.id}`,
+        category: supportCategory,
+        priority: 'medium',
+        message: supportIssue,
+        order_id: order.id,
+        order_status: order.status,
+        user_name: user?.full_name || user?.username || '',
+        user_email: user?.email || '',
+      });
+      setShowSupportModal(false);
+      setSupportIssue('');
+      toast.success('Đã tạo yêu cầu hỗ trợ! Đội ngũ CSKH sẽ liên hệ bạn sớm nhất.');
+      if (res?.data?._id) navigate(`/support/${res.data._id}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Không thể gửi yêu cầu hỗ trợ');
     } finally {
       setIsProcessing(false);
     }
@@ -87,7 +119,6 @@ const OrderDetail: React.FC = () => {
     try {
        const res = await dataService.getInvoice(String(order.id));
        if (res.success && res.url) {
-           // Open via the Express server (port 3001 proxied by Vite)
            window.open(`http://localhost:3001${res.url}`, '_blank');
        } else {
            throw new Error(res.message || "Tạo hóa đơn thất bại");
@@ -100,9 +131,21 @@ const OrderDetail: React.FC = () => {
     }
   };
 
-  const trackingHistory = order.tracking?.history || [
+  const rawHistory = order.tracking?.history || [
     { timestamp: order.created_at, status: "PENDING", note: "Đơn hàng đã được tạo" }
   ];
+  
+  const STATUS_LABEL: Record<string, string> = {
+    PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PROCESSING: 'Đang chuẩn bị',
+    SHIPPING: 'Đang giao hàng', DELIVERED: 'Hoàn thành', CANCELLED: 'Đã hủy', RETURNED: 'Đã hoàn trả',
+  };
+
+  const seenStatus = new Set<string>();
+  const trackingHistory = rawHistory.filter((track: any) => {
+    if (seenStatus.has(track.status)) return false;
+    seenStatus.add(track.status);
+    return true;
+  });
 
   return (
     <div className="flex flex-col gap-6 font-sans">
@@ -116,16 +159,24 @@ const OrderDetail: React.FC = () => {
             <h1 className="text-3xl font-bold flex items-center gap-3">
               Đơn hàng #{order.id}
               <span className={`text-xs px-3 py-1 rounded-full text-white ${order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'bg-green-500' : order.status === 'CANCELLED' ? 'bg-red-500' : 'bg-blue-500'}`}>
-                 {order.status}
+                 {STATUS_LABEL[order.status] || order.status}
               </span>
             </h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 <button onClick={handleDownloadInvoice} disabled={isProcessing} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-200 transition disabled:opacity-50">
                     <span className="material-symbols-outlined text-sm">download</span> PDF
                 </button>
+                <button onClick={() => setShowSupportModal(true)} className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-100 transition">
+                    <span className="material-symbols-outlined text-sm">support_agent</span> Liên hệ hỗ trợ
+                </button>
                 {isCancellable && (
-                    <button onClick={() => setShowCancelModal(true)} className="px-4 py-2 border border-red-500 text-red-500 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-50 transition">
+                    <button onClick={() => setShowCancelModal(true)} disabled={isProcessing} className="px-4 py-2 bg-white border-2 border-red-400 text-red-500 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-50 transition disabled:opacity-50">
                         <span className="material-symbols-outlined text-sm">cancel</span> Hủy đơn
+                    </button>
+                )}
+                {!isCancellable && order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && order.status !== 'RETURNED' && (
+                    <button onClick={() => setShowSupportModal(true)} className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-sm font-bold flex items-center gap-2 cursor-help" title="Đơn hàng không thể hủy trực tiếp. Vui lòng liên hệ hỗ trợ.">
+                        <span className="material-symbols-outlined text-sm">block</span> Không thể hủy
                     </button>
                 )}
                 <button onClick={handleReorder} disabled={isProcessing} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition disabled:opacity-50">
@@ -156,8 +207,11 @@ const OrderDetail: React.FC = () => {
                     {trackingHistory.map((track: any, i: number) => (
                         <div key={i} className="pl-6 relative">
                             <span className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ${(i === trackingHistory.length - 1 && track.status !== 'CANCELLED') ? 'bg-primary ring-4 ring-primary/20' : track.status === 'CANCELLED' ? 'bg-red-500' : 'bg-slate-300'}`}></span>
-                            <p className="font-bold text-slate-800">{track.note || track.status}</p>
-                            <p className="text-sm text-slate-500">{new Date(track.timestamp || track.time).toLocaleString('vi-VN')}</p>
+                            <p className="font-bold text-slate-800">{STATUS_LABEL[track.status] || track.status}</p>
+                            {track.note && track.note !== 'Cập nhật hệ thống' && (
+                              <p className="text-sm text-slate-600 mt-1">{track.note}</p>
+                            )}
+                            <p className="text-[11px] text-slate-400 mt-1">{new Date(track.timestamp || track.time).toLocaleString('vi-VN')}</p>
                         </div>
                     ))}
                  </div>
@@ -318,10 +372,20 @@ const OrderDetail: React.FC = () => {
                    <span className="material-symbols-outlined text-2xl">warning</span>
                </div>
                <h3 className="text-xl font-bold text-center mb-2">Xác nhận hủy đơn</h3>
-               <p className="text-center text-slate-500 mb-6 text-sm">Bạn có chắc chắn muốn hủy đơn hàng #{order.id}? Hành động này không thể hoàn tác.</p>
+               <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{order.id} sẽ bị hủy và không thể hoàn tác.</p>
+               <div className="mb-4">
+                 <label className="block text-sm font-bold text-slate-700 mb-1">Lý do hủy đơn <span className="text-red-500">*</span></label>
+                 <textarea 
+                   value={cancelReason} 
+                   onChange={e => setCancelReason(e.target.value)} 
+                   placeholder="Vui lòng cho biết lý do hủy đơn..." 
+                   className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none resize-none" 
+                   rows={3} 
+                 />
+               </div>
                <div className="flex gap-3">
-                   <button onClick={() => setShowCancelModal(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Đóng</button>
-                   <button onClick={handleCancelOrder} disabled={isProcessing} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition disabled:opacity-50">
+                   <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Đóng</button>
+                   <button onClick={handleCancelOrder} disabled={isProcessing || !cancelReason.trim()} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition disabled:opacity-50">
                        {isProcessing ? 'Đang xử lý...' : 'Xác nhận hủy'}
                    </button>
                </div>
@@ -329,31 +393,43 @@ const OrderDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Address Modal Placeholder */}
-      {showEditAddressModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-               <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold">Cập nhật địa chỉ giao hàng</h3>
-                  <button onClick={() => setShowEditAddressModal(false)} className="material-symbols-outlined text-slate-500 hover:text-slate-900">close</button>
+      {/* Contact Support Modal */}
+      {showSupportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+               <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4 mx-auto">
+                   <span className="material-symbols-outlined text-2xl">support_agent</span>
                </div>
-               <div className="space-y-4 text-sm">
-                   <div>
-                       <label className="block text-slate-700 font-bold mb-1">Tên người nhận</label>
-                       <input type="text" defaultValue={order.order_address?.receiver_name} className="w-full border border-slate-200 rounded-lg p-2" />
-                   </div>
-                   <div>
-                       <label className="block text-slate-700 font-bold mb-1">Số điện thoại</label>
-                       <input type="text" defaultValue={order.order_address?.phone} className="w-full border border-slate-200 rounded-lg p-2" />
-                   </div>
-                   <div>
-                       <label className="block text-slate-700 font-bold mb-1">Địa chỉ</label>
-                       <textarea defaultValue={order.order_address?.full_address} className="w-full border border-slate-200 rounded-lg p-2" rows={3}></textarea>
-                   </div>
+               <h3 className="text-xl font-bold text-center mb-2">Liên hệ hỗ trợ</h3>
+               <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{order.id} • Trạng thái: {order.status}</p>
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">Loại vấn đề</label>
+                   <select value={supportCategory} onChange={e => setSupportCategory(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
+                     <option value="order_issue">Vấn đề về đơn hàng</option>
+                     <option value="shipping">Giao hàng / Vận chuyển</option>
+                     <option value="payment">Thanh toán / Hoàn tiền</option>
+                     <option value="product_quality">Chất lượng sản phẩm</option>
+                     <option value="cancel_request">Yêu cầu hủy đơn</option>
+                     <option value="other">Khác</option>
+                   </select>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">Mô tả vấn đề <span className="text-red-500">*</span></label>
+                   <textarea 
+                     value={supportIssue} 
+                     onChange={e => setSupportIssue(e.target.value)} 
+                     placeholder="Mô tả chi tiết vấn đề bạn đang gặp..." 
+                     className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none resize-none" 
+                     rows={4} 
+                   />
+                 </div>
                </div>
-               <div className="mt-6 flex gap-3">
-                   <button onClick={() => setShowEditAddressModal(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl transition">Hủy</button>
-                   <button onClick={() => { toast.success('Yêu cầu đổi địa chỉ đã được gửi!'); setShowEditAddressModal(false); }} className="flex-1 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition">Lưu cập nhật</button>
+               <div className="flex gap-3 mt-6">
+                   <button onClick={() => { setShowSupportModal(false); setSupportIssue(''); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Đóng</button>
+                   <button onClick={handleContactSupport} disabled={isProcessing || !supportIssue.trim()} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition disabled:opacity-50">
+                       {isProcessing ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                   </button>
                </div>
            </div>
         </div>
