@@ -136,11 +136,11 @@ export const PromotionCard: React.FC<PromotionCardProps> = ({ promotion, branchI
         <div className="mt-auto">
           <div className="flex items-end justify-between mb-3">
             <div>
-              {promotion.discount_type === 'percent' ? (
-                 <span className="text-lotteRed text-2xl font-extrabold">-{promotion.value}%</span>
-              ) : (
-                 <span className="text-lotteRed text-2xl font-extrabold">{displayedPrice.toLocaleString()}đ</span>
-              )}
+                {promotion.discount_type === 'percent' ? (
+                  <span className="text-lotteRed text-2xl font-extrabold">-{promotionValue}%</span>
+                ) : (
+                  <span className="text-lotteRed text-2xl font-extrabold">{displayedPrice.toLocaleString()}đ</span>
+                )}
               {originalPrice !== null && (
                  <span className="text-gray-400 line-through text-sm ml-2">{originalPrice.toLocaleString()}đ</span>
               )}

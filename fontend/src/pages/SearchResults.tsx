@@ -1,13 +1,16 @@
 // src/pages/SearchResults.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
 import { addToCartAsync } from '../slices/cartSlice';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import { toast } from '../components/Toast/toastEvent';
 import { useBranchData } from '../hooks/useBranchData';
 import { productService } from '../services/productService';
+import { resolveImageUrl } from '../utils/imageUrl';
 const SearchResults: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get('q')?.trim() || '';
@@ -172,11 +175,11 @@ const SearchResults: React.FC = () => {
 
   const handleAddToCart = async (item: any) => {
     if (!resolvedBranchId) {
-      toast.error('Vui lòng chọn chi nhánh trước khi mua hàng');
+      toast.error(t('common.selectBranchFirst'));
       return;
     }
     if (Number(item.stock || 0) <= 0) {
-      toast.error('Hết hàng tại chi nhánh này');
+      toast.error(t('product.outOfStock'));
       return;
     }
     if (!isAuthenticated) {
@@ -191,12 +194,12 @@ const SearchResults: React.FC = () => {
         unit_price: item.price,
         quantity: 1,
         product_name: item.name,
-        product_image: item.images?.[0] || '',
+        product_image: resolveImageUrl(item.images?.[0] || ''),
         branchProduct: item.branchProduct || item,
       })).unwrap();
-      toast.success(`Đã thêm "${item.name}" vào giỏ hàng!`);
+      toast.success(t('cart.addedToCart', { name: item.name }));
     } catch (error: any) {
-      toast.error(typeof error === 'string' ? error : (error?.message || 'Lỗi thêm vào giỏ hàng'));
+      toast.error(typeof error === 'string' ? error : (error?.message || t('common.addToCartError')));
     }
   };
 
@@ -219,11 +222,11 @@ const SearchResults: React.FC = () => {
     <main className="max-w-[1200px] mx-auto w-full px-4 py-8">
       <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <Link to="/" className="hover:text-primary transition-colors">
-          Trang chủ
+          {t('common.breadcrumbHome')}
         </Link>
         <span className="material-symbols-outlined text-xs">chevron_right</span>
         <span className="text-slate-900 font-medium dark:text-slate-100">
-          Kết quả tìm kiếm
+          {t('search.title', 'Kết quả tìm kiếm')}
         </span>
       </nav>
 
@@ -234,13 +237,13 @@ const SearchResults: React.FC = () => {
             <div className="glass-panel p-6 rounded-xl shadow-sm">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">filter_list</span>
-                Bộ lọc sản phẩm
+                {t('product.sort')}
               </h3>
               <div className="space-y-6">
                 {/* Sắp xếp theo */}
                 <div>
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                    Sắp xếp theo
+                    {t('common.sortBy')}
                   </p>
                   <div className="relative">
                     <select
@@ -248,11 +251,11 @@ const SearchResults: React.FC = () => {
                       onChange={(e) => setSortBy(e.target.value)}
                       className="w-full h-11 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
                     >
-                      <option>Mới nhất</option>
-                      <option>Bán chạy</option>
-                      <option>Giá: Thấp đến Cao</option>
-                      <option>Giá: Cao đến Thấp</option>
-                      <option>Đánh giá tốt nhất</option>
+                      <option value="Mới nhất">{t('product.newest', 'Mới nhất')}</option>
+                      <option value="Bán chạy">{t('product.bestSeller', 'Bán chạy')}</option>
+                      <option value="Giá: Thấp đến Cao">{t('product.priceLowToHigh', 'Giá: Thấp đến Cao')}</option>
+                      <option value="Giá: Cao đến Thấp">{t('product.priceHighToLow', 'Giá: Cao đến Thấp')}</option>
+                      <option value="Đánh giá tốt nhất">{t('product.highestRated', 'Đánh giá tốt nhất')}</option>
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                       expand_more
@@ -263,7 +266,7 @@ const SearchResults: React.FC = () => {
                 {/* Danh mục */}
                 <div>
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                    Danh mục
+                    {t('product.category', 'Danh mục')}
                   </p>
                   <div className="space-y-1">
                     {(categories || []).map((cat: any) => {
@@ -300,14 +303,14 @@ const SearchResults: React.FC = () => {
                 {/* Khoảng giá */}
                 <div>
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                    Khoảng giá
+                    {t('search.priceRange', 'Khoảng giá')}
                   </p>
                   <div className="space-y-3">
                     {[
-                      { label: 'Dưới 50.000đ', value: 'Dưới 50.000đ' },
+                      { label: t('search.under50k', 'Dưới 50.000đ'), value: 'Dưới 50.000đ' },
                       { label: '50.000đ - 100.000đ', value: '50.000đ - 100.000đ' },
                       { label: '100.000đ - 200.000đ', value: '100.000đ - 200.000đ' },
-                      { label: 'Trên 200.000đ', value: 'Trên 200.000đ' },
+                      { label: t('search.above200k', 'Trên 200.000đ'), value: 'Trên 200.000đ' },
                     ].map((range) => (
                       <label key={range.value} className="flex items-center gap-3 cursor-pointer group">
                         <input
@@ -336,13 +339,13 @@ const SearchResults: React.FC = () => {
                     onClick={applyFilters}
                     className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-transform active:scale-95 shadow-lg shadow-primary/20"
                   >
-                    Áp dụng bộ lọc
+                    {t('product.clearFilters')}
                   </button>
                   <button
                     onClick={clearFilters}
                     className="w-full py-2 text-slate-500 text-sm font-medium hover:text-primary transition-colors"
                   >
-                    Xóa tất cả bộ lọc
+                    {t('product.clearFilters')}
                   </button>
                 </div>
               </div>
@@ -358,13 +361,13 @@ const SearchResults: React.FC = () => {
             <div>
               <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
                 {searchLoading
-                  ? 'Đang tìm kiếm sản phẩm...'
+                  ? t('search.searching', 'Đang tìm kiếm sản phẩm...')
                   : filteredProducts.length > 0
-                  ? `Tìm thấy ${filteredProducts.length} sản phẩm`
-                  : 'Không tìm thấy sản phẩm nào'}
+                  ? t('common.resultsFound', { count: filteredProducts.length })
+                  : t('common.noResults')}
               </h2>
               <p className="text-slate-500">
-                Kết quả cho từ khóa '
+                {t('search.resultsFor', 'Kết quả cho từ khóa')} '
                 <span className="text-primary font-medium italic">{searchQuery || '...'}</span>'
               </p>
             </div>
@@ -412,11 +415,17 @@ const SearchResults: React.FC = () => {
                   >
                     {/* Ảnh + Badges */}
                     <div className={`relative aspect-square rounded-xl overflow-hidden bg-slate-50 mb-4 ${viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}`}>
-                      <img
-                        className="zoom-img w-full h-full object-cover transition-transform duration-500"
-                        alt={item.name}
-                        src={item.images?.[0] || 'https://via.placeholder.com/400x400?text=San+pham'}
-                      />
+                      {item.images?.[0] ? (
+                        <img
+                          className="zoom-img w-full h-full object-cover transition-transform duration-500"
+                          alt={item.name}
+                          src={resolveImageUrl(item.images[0])}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center text-slate-300 ${item.images?.[0] ? 'hidden' : ''}`}>
+                        <span className="material-symbols-outlined text-5xl">image</span>
+                      </div>
 
                       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
                         {discount > 0 && (
@@ -431,12 +440,12 @@ const SearchResults: React.FC = () => {
                         )}
                         {item.is_new && (
                           <span className="px-2 py-1 bg-amber-500 text-white text-[10px] font-bold rounded uppercase">
-                            MỚI
+                            {t('product.badgeNew')}
                           </span>
                         )}
                         {item.is_best_seller && (
                           <span className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded uppercase">
-                            BÁN CHẠY
+                            {t('product.badgeBestSeller')}
                           </span>
                         )}
                       </div>
@@ -445,7 +454,7 @@ const SearchResults: React.FC = () => {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          toast.info('Đã thêm vào yêu thích!');
+                          toast.info(t('product.addedWishlist'));
                         }}
                         className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                       >
@@ -455,7 +464,7 @@ const SearchResults: React.FC = () => {
                       {isOutOfStock && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="px-3 py-1 bg-slate-800/80 text-white font-bold rounded-lg text-sm">
-                            HẾT HÀNG
+                            {t('common.outOfStock')}
                           </span>
                         </div>
                       )}
@@ -480,7 +489,7 @@ const SearchResults: React.FC = () => {
 
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-medium rounded-full text-slate-600 dark:text-slate-300">
-                          {isOutOfStock ? 'Hết hàng' : 'Còn hàng'}
+                          {isOutOfStock ? t('common.outOfStock') : t('common.inStock')}
                         </span>
                       </div>
 
@@ -509,7 +518,7 @@ const SearchResults: React.FC = () => {
                         } font-bold rounded-xl flex items-center justify-center gap-2 transition-all group/btn`}
                       >
                         <span className="material-symbols-outlined text-xl">add_shopping_cart</span>
-                        {isOutOfStock ? 'Nhận thông báo' : 'Thêm vào giỏ'}
+                        {isOutOfStock ? t('common.outOfStock') : t('common.addToCart')}
                       </button>
                     </div>
                   </Link>
@@ -517,7 +526,7 @@ const SearchResults: React.FC = () => {
               })
             ) : (
               <div className="text-center py-20 text-slate-500">
-                Không tìm thấy sản phẩm nào phù hợp với từ khóa "{searchQuery}".
+                {t('search.noResultsMatch', { query: searchQuery })}
               </div>
             )}
           </div>

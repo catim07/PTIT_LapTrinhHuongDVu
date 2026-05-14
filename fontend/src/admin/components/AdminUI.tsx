@@ -119,7 +119,7 @@ interface FilterBarProps {
 
 export const FilterBar: React.FC<FilterBarProps> = ({ filters = [], value, onChange, options = [], placeholder }) => {
   // 1. Process explicit filters array safely avoiding undefined
-  let safeFilters = Array.isArray(filters) ? filters.filter(f => f && typeof f === 'object') : [];
+  const safeFilters = Array.isArray(filters) ? filters.filter(f => f && typeof f === 'object') : [];
   
   // 2. Process backward-compatible single filter usage
   if (typeof onChange === 'function') {
@@ -458,6 +458,16 @@ export const FormSection: React.FC<{ title: string; children: React.ReactNode }>
       <span className="flex-1 h-px bg-slate-200" />
     </h4>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
+  </div>
+);
+
+/* ============================================================
+   INFO ROW
+   ============================================================ */
+export const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+    <span className="text-sm font-medium text-slate-700">{value || '—'}</span>
   </div>
 );
 

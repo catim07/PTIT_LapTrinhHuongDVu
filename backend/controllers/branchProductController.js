@@ -10,6 +10,21 @@ const parseBranchId = (id) => {
   return id;
 };
 
+const buildBranchIdFilter = (raw) => {
+  if (!raw) return null;
+  const rawStr = String(raw);
+  const parsed = parseBranchId(raw);
+  const candidates = [parsed, rawStr];
+
+  if (/^\d+$/.test(rawStr)) {
+    candidates.push(Number(rawStr));
+  }
+
+  const uniq = Array.from(new Set(candidates.filter((v) => v !== undefined && v !== null && v !== '')));
+  if (uniq.length <= 1) return uniq[0] ?? rawStr;
+  return { $in: uniq };
+};
+
 /**
  * Parse product_id filter - handles both ObjectId strings and legacy numeric IDs.
  * Returns a query condition that matches the product_id field.
@@ -27,6 +42,8 @@ const parseProductIdFilter = (id) => {
   return id;
 };
 
+const pickNonEmpty = (...values) => values.find((v) => v !== undefined && v !== null && v !== '') ?? null;
+
 import Category from '../models/Category.js';
 import Supplier from '../models/Supplier.js';
 import InventoryBatch from '../models/InventoryBatch.js';
@@ -34,7 +51,7 @@ import InventoryBatch from '../models/InventoryBatch.js';
 export const list = async (req, res) => {
   try {
     const filter = {};
-    if (req.query.branch_id) filter.branch_id = parseBranchId(req.query.branch_id);
+    if (req.query.branch_id) filter.branch_id = buildBranchIdFilter(req.query.branch_id);
     if (req.query.product_id) {
       const parsedPid = parseProductIdFilter(req.query.product_id);
       if (parsedPid) filter.product_id = parsedPid;
@@ -117,6 +134,11 @@ export const list = async (req, res) => {
           // Fallback: use BP's own or product's saved category_name
           obj.category_name = bp.category_name || prod.category_name || '';
         }
+        obj.category_id = pickNonEmpty(bp.category_id, prod.category_id);
+        obj.supplier_id = pickNonEmpty(bp.supplier_id, prod.supplier_id);
+        obj.supplier_name = pickNonEmpty(bp.supplier_name, prod.supplier_name);
+        obj.sku = pickNonEmpty(bp.sku, prod.sku, obj.sku);
+        obj.master_id = pickNonEmpty(bp.master_id, prod.master_id, obj.master_id);
       } else {
         obj.product = null;
         obj.category_name = bp.category_name || '';
@@ -149,8 +171,9 @@ export const list = async (req, res) => {
         obj.exp_date = earliestBatch ? earliestBatch.exp_date : (bp.expiry_date || null);
         obj.days_until_expiry = days_until_expiry;
         obj.expiry_status = expiry_status;
-        // Fallback: use BP's own saved supplier_name if join returns nothing
-        obj.supplier_name = supplier ? supplier.name : (bp.supplier_name || null);
+        // Fallback: use BP's own or product's saved supplier_name if join returns nothing
+        obj.supplier_name = supplier ? supplier.name : pickNonEmpty(bp.supplier_name, prod?.supplier_name);
+        obj.supplier_id = pickNonEmpty(obj.supplier_id, supplier ? supplier._id : null, bp.supplier_id, prod?.supplier_id);
         obj.supplier_code = supplier ? supplier.code : null;
       }
 

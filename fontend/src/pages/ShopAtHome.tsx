@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -223,7 +223,7 @@ export const ShopAtHome: React.FC = () => {
     const stock = Number(item?.stock ?? bp?.stock ?? 0) || 0;
 
     if (!currentBranchId) {
-      toast.error('Vui lòng chọn chi nhánh trước khi mua hàng');
+      toast.error(t('common.selectBranchFirst'));
       return false;
     }
 
@@ -233,7 +233,7 @@ export const ShopAtHome: React.FC = () => {
     }
 
     if (stock <= 0) {
-      toast.error(t('product.outOfStock') || 'Hết hàng tại chi nhánh này');
+      toast.error(t('product.outOfStock'));
       return false;
     }
 
@@ -244,15 +244,15 @@ export const ShopAtHome: React.FC = () => {
         price: unitPrice,
         unit_price: unitPrice,
         quantity: 1,
-        product_name: product?.name || item?.name || 'San pham',
+        product_name: product?.name || item?.name || t('common.product'),
         product_image: item?.image || product?.images?.[0] || '',
         branchProduct: bp,
       })).unwrap();
 
-      toast.success(t('product.addedToCart', { name: product?.name || item?.name || 'San pham' }));
+      toast.success(t('product.addedToCart', { name: product?.name || item?.name || t('common.product') }));
       return true;
     } catch (error: any) {
-      toast.error(typeof error === 'string' ? error : (error?.message || 'Lỗi thêm vào giỏ hàng'));
+      toast.error(typeof error === 'string' ? error : (error?.message || t('common.addToCartError')));
       return false;
     }
   };
@@ -289,7 +289,7 @@ export const ShopAtHome: React.FC = () => {
         toast.info(t('product.removedWishlist'));
       }
     } catch {
-      toast.error('Không thể cập nhật danh sách yêu thích');
+      toast.error(t('common.error'));
     }
   };
 
@@ -374,7 +374,7 @@ export const ShopAtHome: React.FC = () => {
 
   const newReleaseProducts = useMemo(() => {
     return normalizedShopProducts
-      .filter((item: any) => item.badges?.includes('new') || item?.source?.is_new)
+      .filter((item: any) => item.is_new === true || item.badges?.includes('new') || item?.source?.is_new === true)
       .slice(0, 10);
   }, [normalizedShopProducts]);
 
@@ -430,25 +430,30 @@ export const ShopAtHome: React.FC = () => {
   const isProductLoading = dbStatus === 'loading' || isLoading;
 
   // Logic for countdown (from hot deals or default 5h bounds)
-  const firstHotDeal = hotDeals?.[0];
-  const targetDate = firstHotDeal && (firstHotDeal.end_date || firstHotDeal.valid_until)
-    ? new Date(firstHotDeal.end_date || firstHotDeal.valid_until).getTime()
-    : Date.now() + 5 * 60 * 60 * 1000;
+  const targetDate = useMemo(() => {
+    const firstHotDeal = hotDeals?.[0];
+    if (firstHotDeal && (firstHotDeal.end_date || firstHotDeal.valid_until)) {
+      const parsed = new Date(firstHotDeal.end_date || firstHotDeal.valid_until).getTime();
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    return Date.now() + 5 * 60 * 60 * 1000;
+  }, [hotDeals]);
   
-  const calculateTimeLeft = () => {
+  const calculateTimeLeft = useCallback(() => {
     const difference = targetDate - Date.now();
     if (difference <= 0) return { hours: 0, minutes: 0, seconds: 0, expired: true };
     const hours = Math.floor(difference / (1000 * 60 * 60));
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((difference % (1000 * 60)) / 1000);
     return { hours, minutes, seconds, expired: false };
-  };
+  }, [targetDate]);
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
   useEffect(() => {
+    setTimeLeft(calculateTimeLeft()); // recalculate immediately when targetDate changes
     const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [calculateTimeLeft]);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
@@ -614,7 +619,7 @@ export const ShopAtHome: React.FC = () => {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-red-200 bg-white/70 px-6 py-8 text-center text-sm font-semibold text-red-600">
-              Chua co san pham Flash Deal phu hop voi chi nhanh da chon.
+               {t('common.flashDealNoMatch')}
             </div>
           )}
         </section>
@@ -631,7 +636,7 @@ export const ShopAtHome: React.FC = () => {
               <div className="z-10 relative flex flex-col justify-center h-full w-2/3">
                 <span className="bg-white/40 dark:bg-black/30 w-fit text-slate-800 dark:text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 backdrop-blur-md">{t('common.collection')}</span>
                 <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">{banner.title}</h3>
-                <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm sm:text-base font-medium line-clamp-2" dangerouslySetInnerHTML={{ __html: banner.description || 'Ưu đãi có hạn' }} />
+                <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm sm:text-base font-medium line-clamp-2" dangerouslySetInnerHTML={{ __html: banner.description || t('promotions.limitedOffer', 'Limited offer') }} />
                 <button onClick={() => navigate('/events')} className="w-fit bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 sm:px-8 py-3 rounded-xl font-bold shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all text-sm">
                   {banner.button_text || t('common.viewNow')}
                 </button>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store';
-import { login, loginWithGoogle, sendOTP, verifyOTP, clearAuthMessages, hydrateOAuthSession } from '../slices/authSlice';
+import { login, loginWithGoogle, sendOTP, verifyOTP, clearAuthMessages, hydrateOAuthSession, forgotPassword, resetPassword } from '../slices/authSlice';
 import { toast } from '../components/Toast/toastEvent';
 import { setupGoogleSignIn } from '../utils/googleIdentity';
 import { authService } from '../services/authService';
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
   const isGoogleConfigured = googleClientId.length > 0;
   const [loginMode, setLoginMode] = useState<'password' | 'otp'>('password');
@@ -18,6 +20,14 @@ const Login: React.FC = () => {
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [errors, setErrors] = useState<{identifier?:string, password?:string, form?:string}>({});
+
+  // Forgot password state
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const dispatch = useAppDispatch();
   const authState = useAppSelector((state) => state.auth);
@@ -98,7 +108,7 @@ const Login: React.FC = () => {
         const user = JSON.parse(atob(padded));
         dispatch(hydrateOAuthSession({ token: oauthToken, refreshToken: oauthRefresh, user }));
         handlePostLoginRedirect();
-      } catch (err) {
+      } catch {
         setErrors({ form: 'Không thể xử lý dữ liệu đăng nhập Facebook.' });
       }
     }
@@ -188,8 +198,6 @@ const Login: React.FC = () => {
     }
   }
 
-
-
   const handleFacebookLogin = async () => {
     dispatch(clearAuthMessages());
     setSocialLoading('facebook');
@@ -238,6 +246,46 @@ const Login: React.FC = () => {
     setShowPassword(!showPassword);
   };
 
+  const handleForgotRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error('Vui lòng nhập email');
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      await dispatch(forgotPassword(forgotEmail.trim())).unwrap();
+      toast.success('Mã xác nhận đã được gửi đến email của bạn');
+      setForgotStep(2);
+    } catch (err: any) {
+      toast.error(getErrorText(err, 'Lỗi gửi yêu cầu'));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleForgotReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotOtp.trim() || !forgotNewPassword.trim()) {
+      toast.error('Vui lòng nhập đầy đủ OTP và mật khẩu mới');
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      await dispatch(resetPassword({ email: forgotEmail.trim(), otp: forgotOtp.trim(), newPassword: forgotNewPassword })).unwrap();
+      toast.success('Đặt lại mật khẩu thành công, vui lòng đăng nhập');
+      setIsForgotModalOpen(false);
+      setForgotStep(1);
+      setForgotEmail('');
+      setForgotOtp('');
+      setForgotNewPassword('');
+    } catch (err: any) {
+      toast.error(getErrorText(err, 'Lỗi đặt lại mật khẩu'));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
       {/* Left Side: Illustrative Banner (Desktop Only) */}
@@ -258,7 +306,7 @@ const Login: React.FC = () => {
           </div>
           <h2 className="text-5xl font-black leading-tight mb-6">
             Trải nghiệm mua sắm <br />
-            <span className="text-primary">tiện lợi tại nhà</span>
+            <span className="text-primary">{t('auth.convenientAtHome')}</span>
           </h2>
           <p className="text-lg text-slate-700 dark:text-slate-300 max-w-md leading-relaxed">
             Hàng ngàn sản phẩm tươi ngon, chất lượng từ Lotte Mart đang chờ đón bạn. Đăng nhập ngay để nhận ưu đãi độc quyền.
@@ -304,8 +352,8 @@ const Login: React.FC = () => {
           </div>
 
           <div className="mb-10 text-center">
-            <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Chào mừng trở lại!</h3>
-            <p className="text-slate-500 dark:text-slate-400">Vui lòng nhập thông tin để tiếp tục mua sắm</p>
+            <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">{t('auth.welcomeBack')}</h3>
+            <p className="text-slate-500 dark:text-slate-400">{t('auth.pleaseEnterInfo')}</p>
           </div>
 
           <div className="w-full grid grid-cols-2 gap-2 mb-5">
@@ -333,7 +381,45 @@ const Login: React.FC = () => {
             </button>
           </div>
 
-          {errors.form && <div className="w-full p-3 mb-4 bg-red-100 text-red-600 rounded-lg text-sm font-medium">{errors.form}</div>}
+          {errors.form && (() => {
+            const formError = errors.form || '';
+            const isGoogleCollision = formError.includes('[PROVIDER_COLLISION_GOOGLE]') || formError.includes('[USE_GOOGLE_LOGIN]');
+            const isFacebookCollision = formError.includes('[PROVIDER_COLLISION_FACEBOOK]') || formError.includes('[USE_FACEBOOK_LOGIN]');
+            const cleanMessage = formError.replace(/\[[\w_]+\]\s*/g, '');
+
+            if (isGoogleCollision) {
+              return (
+                <div className="w-full p-4 mb-4 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="font-bold text-blue-800">Tài khoản Google</span>
+                  </div>
+                  <p className="text-blue-700">{cleanMessage}</p>
+                </div>
+              );
+            }
+
+            if (isFacebookCollision) {
+              return (
+                <div className="w-full p-4 mb-4 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                    </svg>
+                    <span className="font-bold text-indigo-800">Tài khoản Facebook</span>
+                  </div>
+                  <p className="text-indigo-700">{cleanMessage}</p>
+                </div>
+              );
+            }
+
+            return <div className="w-full p-3 mb-4 bg-red-100 text-red-600 rounded-lg text-sm font-medium">{cleanMessage}</div>;
+          })()}
           {authState.successMessage && !errors.form && (
             <div className="w-full p-3 mb-4 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium">{authState.successMessage}</div>
           )}
@@ -342,7 +428,7 @@ const Login: React.FC = () => {
           <form className="w-full space-y-5" onSubmit={onSubmit}>
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email hoặc SĐT</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('auth.emailOrPhone')}</label>
               <div className="relative flex items-center group">
                 <div className="absolute left-0 top-0 h-full w-12 flex items-center justify-center pointer-events-none">
                   <span className="material-symbols-outlined text-slate-400 text-[20px] leading-none block group-focus-within:text-primary transition-colors">
@@ -351,7 +437,7 @@ const Login: React.FC = () => {
                 </div>
                 <input
                   className={`w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border ${errors.identifier ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-900 dark:text-white`}
-                  placeholder="email@example.com hoặc 0912..."
+                  placeholder={t('auth.emailOrPhone')}
                   type="text"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
@@ -364,10 +450,10 @@ const Login: React.FC = () => {
             {/* Password Input */}
             <div>
               <div className="flex justify-between mb-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Mật khẩu</label>
-                <a className="text-sm font-semibold text-primary hover:underline" href="#">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('auth.password')}</label>
+                <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-sm font-semibold text-primary hover:underline">
                   Quên mật khẩu?
-                </a>
+                </button>
               </div>
               <div className="relative flex items-center group">
                 <div className="absolute left-0 top-0 h-full w-12 flex items-center justify-center pointer-events-none">
@@ -377,7 +463,7 @@ const Login: React.FC = () => {
                 </div>
                 <input
                   className={`w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-800 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-900 dark:text-white`}
-                  placeholder="Nhập mật khẩu"
+                  placeholder={t('auth.password')}
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -422,10 +508,10 @@ const Login: React.FC = () => {
           ) : (
             <form className="w-full space-y-4" onSubmit={handleVerifyOTP}>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Số điện thoại</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('auth.phoneNumber')}</label>
                 <input
                   className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-900 dark:text-white"
-                  placeholder="Nhập số điện thoại"
+                  placeholder={t('auth.phoneNumber')}
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -438,14 +524,14 @@ const Login: React.FC = () => {
                 disabled={authState.loading || resendCountdown > 0}
                 className="w-full py-3 border border-primary text-primary font-semibold rounded-xl disabled:opacity-50"
               >
-                {resendCountdown > 0 ? `Gửi lại OTP sau ${resendCountdown}s` : 'Gửi OTP'}
+                {resendCountdown > 0 ? t('auth.resendOTP', { seconds: resendCountdown }) : t('auth.sendOTP')}
               </button>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Mã OTP</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('auth.otpCode')}</label>
                 <input
                   className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-900 dark:text-white"
-                  placeholder="Nhập mã OTP"
+                  placeholder={t('auth.otpCode')}
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
@@ -468,7 +554,7 @@ const Login: React.FC = () => {
               <div className="w-full border-t border-slate-200 dark:border-slate-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white dark:bg-background-dark text-slate-500">Hoặc tiếp tục với</span>
+              <span className="px-4 bg-white dark:bg-background-dark text-slate-500">{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
@@ -515,6 +601,45 @@ const Login: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl relative">
+            <button onClick={() => {setIsForgotModalOpen(false); setForgotStep(1);}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Quên mật khẩu</h3>
+            <p className="text-slate-500 mb-6">{forgotStep === 1 ? 'Nhập email đã đăng ký để nhận mã OTP' : 'Nhập mã OTP và mật khẩu mới của bạn'}</p>
+            
+            {forgotStep === 1 ? (
+              <form onSubmit={handleForgotRequest}>
+                <div className="mb-4">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Email</label>
+                  <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Nhập email..." required />
+                </div>
+                <button disabled={isForgotLoading} type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50">
+                  {isForgotLoading ? 'Đang gửi...' : 'Gửi mã OTP'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotReset}>
+                <div className="mb-4">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Mã OTP</label>
+                  <input type="text" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Nhập 6 số OTP" required />
+                </div>
+                <div className="mb-6">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Mật khẩu mới</label>
+                  <input type="password" value={forgotNewPassword} onChange={e => setForgotNewPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Mật khẩu mới" required />
+                </div>
+                <button disabled={isForgotLoading} type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50">
+                  {isForgotLoading ? 'Đang xử lý...' : 'Đặt lại mật khẩu'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

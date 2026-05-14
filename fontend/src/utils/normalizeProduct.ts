@@ -1,3 +1,6 @@
+import i18n from '../i18n';
+import { resolveImageUrl, fallbackProductImage } from './imageUrl';
+
 type AnyRecord = Record<string, any>;
 
 const toStringId = (value: any): string => {
@@ -25,10 +28,10 @@ const sanitizeText = (value: any, fallback = ''): string => {
 
 const normalizeImages = (raw: AnyRecord): string[] => {
   if (Array.isArray(raw.images)) {
-    return raw.images.map((img) => String(img || '').trim()).filter(Boolean);
+    return raw.images.map((img) => resolveImageUrl(String(img || '').trim())).filter(Boolean);
   }
-  if (typeof raw.image === 'string' && raw.image.trim()) return [raw.image.trim()];
-  if (typeof raw.thumbnail === 'string' && raw.thumbnail.trim()) return [raw.thumbnail.trim()];
+  if (typeof raw.image === 'string' && raw.image.trim()) return [resolveImageUrl(raw.image.trim())];
+  if (typeof raw.thumbnail === 'string' && raw.thumbnail.trim()) return [resolveImageUrl(raw.thumbnail.trim())];
   return [];
 };
 
@@ -42,7 +45,7 @@ const deriveCategoryShop = (raw: AnyRecord, categoryLookup?: Record<string, stri
   const categoryId = toStringId(raw.category_id || raw.product?.category_id);
   if (categoryId && categoryLookup?.[categoryId]) return categoryLookup[categoryId];
 
-  return 'Khac';
+  return i18n.t('common.other');
 };
 
 const deriveBadges = (raw: AnyRecord, discountPercent: number, isOutOfStock: boolean): string[] => {
@@ -123,10 +126,10 @@ export const normalizeProduct = (raw: AnyRecord, categoryLookup?: Record<string,
 
   return {
     id,
-    name: sanitizeText(merged.name || product?.name, 'San pham'),
+    name: sanitizeText(merged.name || product?.name, i18n.t('common.product')),
     price: basePrice,
     original_price: baseOriginalPrice,
-    image: images[0] || 'https://via.placeholder.com/600x600?text=Product',
+    image: images[0] || fallbackProductImage,
     categoryShop: deriveCategoryShop(merged, categoryLookup),
     rating: toNumber(merged.rating ?? merged.average_rating ?? product?.rating ?? product?.average_rating, 0),
     stock,

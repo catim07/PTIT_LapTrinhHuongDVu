@@ -16,7 +16,7 @@ const StepSchema = new mongoose.Schema({
 
 const RecipeSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  normalized_name: { type: String, required: true, unique: true, index: true },
+  normalized_name: { type: String, required: true, unique: true },
   description: { type: String, default: '' },
   ingredients: [IngredientSchema],
   steps: [StepSchema],

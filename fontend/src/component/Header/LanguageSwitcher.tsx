@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const languages = [
-  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳', short: 'VN' },
-  { code: 'en', label: 'English', flag: '🇺🇸', short: 'EN' },
-];
-
 const LanguageSwitcher: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const languages = [
+    { code: 'vi', label: t('common.langVietnamese'), flag: '🇻🇳', short: 'VI' },
+    { code: 'en', label: t('common.langEnglish'), flag: '🇺🇸', short: 'EN' },
+    { code: 'ja', label: t('common.langJapanese'), flag: '🇯🇵', short: 'JA' },
+  ];
 
   const current = languages.find((l) => l.code === i18n.language) || languages[0];
 
@@ -22,16 +23,28 @@ const LanguageSwitcher: React.FC = () => {
   }, []);
 
   const handleChange = (code: string) => {
+    const prevLang = i18n.language;
     i18n.changeLanguage(code);
     localStorage.setItem('lotte_language', code);
     setOpen(false);
+
+    // If language actually changed, force refetch all API data
+    // by dispatching a custom event and doing a soft reload of state.
+    if (prevLang !== code) {
+      // Dispatch custom event so any component can listen and refetch
+      window.dispatchEvent(new CustomEvent('lotte_language_changed', { detail: { lang: code, prev: prevLang } }));
+      
+      // Force page reload to ensure all API data is refetched with new locale
+      // This is the most reliable way to ensure stale cached data is cleared
+      window.location.reload();
+    }
   };
 
   return (
     <div ref={ref} style={{ position: 'relative', zIndex: 200 }}>
       <button
         onClick={() => setOpen(!open)}
-        aria-label="Change language"
+        aria-label={t('common.changeLanguage')}
         id="language-switcher-btn"
         style={{
           display: 'flex',

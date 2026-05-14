@@ -52,6 +52,7 @@ const safeObj = async (promise: Promise<any>): Promise<any> => {
 // Validation regexes (still used for client-side pre-validation)
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const phoneRegex = /^(?:\+84|0)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$/;
+// eslint-disable-next-line no-useless-escape
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()\[\]{}^~#\-+=<>/\\;:'",.])[A-Za-z\d@$!%*?&()\[\]{}^~#\-+=<>/\\;:'\",.]{8,}$/;
 
 export const dataService = {
@@ -60,6 +61,9 @@ export const dataService = {
   // ═══════════════════════════════════════════════
   getUsers: async (): Promise<Types.User[]> => {
     return safeArr(httpClient.get(endpoints.users.list));
+  },
+  searchUsers: async (query: string): Promise<Types.User[]> => {
+    return safeArr(httpClient.get(endpoints.users.list, { params: { search: query, limit: 10 } }));
   },
   getUser: async (id: number | string): Promise<Types.User | undefined> => {
     return safeObj(httpClient.get(endpoints.users.detail(id)));
@@ -72,7 +76,7 @@ export const dataService = {
     const res = await httpClient.post(endpoints.auth.changePassword, { currentPassword: currentPass, newPassword: newPass });
     return obj(res) || { success: true, message: 'Đổi mật khẩu thành công' };
   },
-  logoutAllDevices: async (_userId: number | string): Promise<{ success: boolean; message: string }> => {
+  logoutAllDevices: async (_userId: number | string): Promise<{ success: boolean; message: string; data?: any }> => {
     const res = await httpClient.post(endpoints.auth.logoutAll, {});
     return obj(res) || { success: true, message: 'Đã đăng xuất khỏi tất cả thiết bị' };
   },
@@ -574,6 +578,17 @@ export const dataService = {
     const urls = payload?.data?.urls || payload?.urls || [];
     return Array.isArray(urls) ? urls : [];
   },
+  uploadEvidenceImages: async (files: File[]): Promise<string[]> => {
+    if (!Array.isArray(files) || files.length === 0) return [];
+    const form = new FormData();
+    files.forEach((file) => form.append('images', file));
+    const res = await httpClient.post(endpoints.uploads.evidenceImages, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const payload = res?.data ?? res;
+    const urls = payload?.data?.urls || payload?.urls || [];
+    return Array.isArray(urls) ? urls : [];
+  },
 
 
   // ═══════════════════════════════════════════════
@@ -658,8 +673,8 @@ export const dataService = {
   getMessages: async (ticketId: string): Promise<Types.Message[]> => {
     return safeArr(httpClient.get(endpoints.support.messages(ticketId)));
   },
-  sendMessage: async (ticketId: string, _senderId: number | string, content: string): Promise<Types.Message> => {
-    const res = await httpClient.post(endpoints.support.sendMessage(ticketId), { content, sender: 'user' });
+  sendMessage: async (ticketId: string, _senderId: number | string, content: string, attachments: string[] = []): Promise<Types.Message> => {
+    const res = await httpClient.post(endpoints.support.sendMessage(ticketId), { content, sender: 'user', attachments });
     return obj(res);
   },
 
@@ -949,6 +964,14 @@ export const dataService = {
   addEventComment: async (comment: any): Promise<any> => {
     const postId = comment.post_id;
     const res = await httpClient.post(endpoints.events.addComment(postId), comment);
+    return obj(res);
+  },
+  toggleEventLike: async (postId: number | string): Promise<any> => {
+    const res = await httpClient.put(endpoints.events.like(postId));
+    return obj(res);
+  },
+  toggleCommentLike: async (postId: number | string, commentId: number | string): Promise<any> => {
+    const res = await httpClient.put(endpoints.events.likeComment(postId, commentId));
     return obj(res);
   },
   getRelatedEventPosts: async (postId: number | string): Promise<any[]> => {

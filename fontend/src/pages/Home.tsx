@@ -110,7 +110,7 @@ const Home: React.FC = () => {
     const grouped = new Map<string, any[]>();
     (availableProducts || []).forEach((item: any) => {
       if (!item) return;
-      const categoryName = String(item.categoryShop || item.category_name || item.category?.name || 'Khac').trim() || 'Khac';
+      const categoryName = String(item.categoryShop || item.category_name || item.category?.name || t('common.other')).trim() || t('common.other');
       const list = grouped.get(categoryName) || [];
       list.push(item);
       grouped.set(categoryName, list);
@@ -154,6 +154,7 @@ const Home: React.FC = () => {
           product_id: dealProductId,
           deal_price: dealPrice,
           original_price: originalPrice,
+          total_quantity: Number(deal?.total_quantity || deal?.stock_limit || 0),
           remaining_quantity: deal?.remaining_quantity,
         };
       })
@@ -195,7 +196,7 @@ const Home: React.FC = () => {
     event.stopPropagation();
 
     if (!currentBranchId) {
-      toast.error('Vui long chon chi nhanh truoc khi mua hang');
+      toast.error(t('common.selectBranchFirst'));
       return;
     }
 
@@ -230,7 +231,7 @@ const Home: React.FC = () => {
       ).unwrap();
       toast.success(t('product.addedToCart', { name: item?.name || t('cart.product') }));
     } catch (error: any) {
-      toast.error(typeof error === 'string' ? error : (error?.message || 'Loi them vao gio hang'));
+      toast.error(typeof error === 'string' ? error : (error?.message || t('common.addToCartError')));
     }
   };
 
@@ -260,12 +261,12 @@ const Home: React.FC = () => {
             <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
               {item?.is_best_seller && (
                 <span className="bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest italic shadow-lg shadow-primary/30">
-                  HOT DEAL
+                  {t('common.hotDeal')}
                 </span>
               )}
               {item?.is_new && (
                 <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest italic shadow-lg shadow-amber-500/30">
-                  NEW
+                  {t('common.new')}
                 </span>
               )}
             </div>
@@ -376,19 +377,19 @@ const Home: React.FC = () => {
           <div className="relative z-10 max-w-2xl">
             <h2 className="text-3xl md:text-5xl font-black mb-4 flex items-center gap-3">
               <span className="material-symbols-outlined !text-4xl md:!text-5xl text-[#FFD60A]">auto_awesome</span>
-              Smart Shopping
+              {t('smartShopping.title')}
             </h2>
             <p className="text-lg text-white/90 font-medium mb-6">
-              Trải nghiệm mua sắm cá nhân hóa với AI. Khám phá gợi ý sản phẩm, theo dõi giá tự động, và mua nguyên liệu theo công thức món ăn Việt Nam chỉ với 1 click!
+              {t('smartShopping.description')}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/smart-shopping" className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-lg shadow-black/10 flex items-center gap-2">
                 <span className="material-symbols-outlined !text-xl">psychology</span>
-                Khám phá ngay
+                {t('smartShopping.explore')}
               </Link>
               <Link to="/smart-shopping?tab=recipe" className="bg-black/20 backdrop-blur-md text-white border border-white/20 px-8 py-3 rounded-xl font-bold hover:bg-black/30 transition-colors flex items-center gap-2">
                 <span className="material-symbols-outlined !text-xl">restaurant_menu</span>
-                Mua theo công thức
+                {t('smartShopping.buyByRecipe')}
               </Link>
             </div>
           </div>
@@ -463,19 +464,29 @@ const Home: React.FC = () => {
                       <img src={deal.image_url || 'https://via.placeholder.com/400'} alt={deal.title || t('product.flashDeal')} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     <h3 className="font-bold text-slate-800 dark:text-white line-clamp-2 h-10 mb-2">{deal.title || t('product.flashDeal')}</h3>
-                    <div className="flex items-end justify-between">
+                    <div className="flex items-end justify-between mb-2">
                       <div className="flex flex-col">
                         <span className="text-rose-600 font-black text-lg">{Number(deal.deal_price || 0).toLocaleString('vi-VN')}₫</span>
                         <span className="text-slate-400 text-xs line-through">{Number(deal.original_price || 0).toLocaleString('vi-VN')}₫</span>
                       </div>
-                      {deal.remaining_quantity != null && <div className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded uppercase">Con {deal.remaining_quantity}</div>}
                     </div>
+                    {deal.total_quantity > 0 && deal.remaining_quantity != null && (
+                      <div className="mt-auto w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 relative overflow-hidden flex items-center justify-center border border-rose-100 dark:border-rose-900">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-500 ease-in-out" 
+                          style={{ width: `${Math.max(0, Math.min(100, ((deal.total_quantity) - deal.remaining_quantity) / (deal.total_quantity) * 100))}%` }}
+                        ></div>
+                        <span className="relative z-10 text-[9px] font-bold text-white uppercase drop-shadow-md">
+                          Đã bán {Math.max(0, deal.total_quantity - deal.remaining_quantity)}
+                        </span>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50/70 px-6 py-8 text-center text-sm font-semibold text-rose-700">
-                Co flash deal hop le nhung chua map duoc san pham hien thi cho chi nhanh hien tai.
+                {t('common.flashDealNoMatch')}
               </div>
             )}
           </section>
@@ -495,6 +506,25 @@ const Home: React.FC = () => {
           {renderProductGrid(newProducts, t('product.noProducts'))}
         </section>
       </main>
+
+      <div className="fixed bottom-6 right-6 z-40 group">
+        <Link
+          to="/account/support"
+          aria-label={t('support.helpLink')}
+          className="flex items-center gap-2 rounded-full bg-primary text-white px-4 py-3 shadow-xl shadow-primary/30 hover:bg-primary/90 transition-all"
+        >
+          <span className="material-symbols-outlined text-[20px]">support_agent</span>
+          <span className="text-sm font-bold hidden sm:inline">{t('support.helpLink')}</span>
+        </Link>
+        <div className="absolute bottom-14 right-0 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl p-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all">
+          <p className="text-sm font-black text-slate-900 dark:text-white">{t('support.homeCardTitle')}</p>
+          <p className="text-xs text-slate-500 mt-1">{t('support.homeCardDesc')}</p>
+          <Link to="/account/support" className="inline-flex items-center gap-1 text-xs font-bold text-primary mt-3">
+            {t('support.homeCardCta')}
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
     </>
   );
 };

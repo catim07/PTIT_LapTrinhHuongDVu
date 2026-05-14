@@ -47,7 +47,7 @@ const AdminDashboard: React.FC = () => {
       setSupport(data.support);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi tải dữ liệu Dashboard');
+      setError(err.message || t('adminDash.systemError'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ const AdminDashboard: React.FC = () => {
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-sm font-bold text-slate-500">Đang tải dữ liệu báo cáo...</p>
+          <p className="mt-4 text-sm font-bold text-slate-500">{t('adminDash.loadingReport')}</p>
         </div>
       </div>
     );
@@ -73,9 +73,9 @@ const AdminDashboard: React.FC = () => {
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center bg-red-50 p-6 rounded-2xl w-full max-w-md">
           <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
-          <h3 className="text-lg font-bold text-on-surface">Lỗi hệ thống</h3>
+          <h3 className="text-lg font-bold text-on-surface">{t('adminDash.systemError')}</h3>
           <p className="mt-2 text-sm text-red-700">{error}</p>
-          <button onClick={fetchData} className="mt-6 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:bg-primary-container">Thử lại</button>
+          <button onClick={fetchData} className="mt-6 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:bg-primary-container">{t('adminDash.retry')}</button>
         </div>
       </div>
     );
@@ -87,8 +87,8 @@ const AdminDashboard: React.FC = () => {
         {/* Dashboard Header Actions */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Executive Dashboard</h2>
-            <p className="text-slate-500 text-sm mt-1">Real-time performance metrics</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">{t('adminDash.title')}</h2>
+            <p className="text-slate-500 text-sm mt-1">{t('adminDash.subtitle')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-surface-container-high p-1 rounded-xl">
@@ -126,7 +126,7 @@ const AdminDashboard: React.FC = () => {
               className="bg-primary text-white px-5 py-2 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary-container transition-all"
             >
               <span className="material-symbols-outlined text-sm">download</span>
-              Export Report
+              {t('adminDash.exportReport')}
             </button>
             <button onClick={fetchData} className="p-2 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors" title="Làm mới">
               <span className="material-symbols-outlined text-slate-600">refresh</span>
@@ -142,7 +142,7 @@ const AdminDashboard: React.FC = () => {
                <span className="material-symbols-outlined text-[100px]">payments</span>
             </div>
             <div className="flex justify-between items-start z-10">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Doanh thu (Sales)</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('adminDash.sales')}</p>
               <span className="material-symbols-outlined text-red-600 bg-red-50 p-1.5 rounded-lg">payments</span>
             </div>
             <div className="z-10">
@@ -150,7 +150,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mt-1">
                 <span className="material-symbols-outlined text-sm">trending_up</span>
                 <span>+{summary.sales.change}%</span>
-                <span className="text-slate-400 font-medium ml-1">vs last period</span>
+                <span className="text-slate-400 font-medium ml-1">{t('adminDash.vsLastPeriod')}</span>
               </div>
             </div>
           </div>
@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
                <span className="material-symbols-outlined text-[100px]">shopping_basket</span>
             </div>
             <div className="flex justify-between items-start z-10">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Đơn hàng (Orders)</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('adminDash.orders')}</p>
               <span className="material-symbols-outlined text-slate-600 bg-slate-100 p-1.5 rounded-lg">shopping_basket</span>
             </div>
             <div className="z-10">
@@ -169,7 +169,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mt-1">
                 <span className="material-symbols-outlined text-sm">trending_up</span>
                 <span>+{summary.orders.change}%</span>
-                <span className="text-slate-400 font-medium ml-1">vs yesterday</span>
+                <span className="text-slate-400 font-medium ml-1">{t('adminDash.vsYesterday')}</span>
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ const AdminDashboard: React.FC = () => {
                <span className="material-symbols-outlined text-[100px]">person_add</span>
             </div>
             <div className="flex justify-between items-start z-10">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khách hàng (Customers)</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('adminDash.customers')}</p>
               <span className="material-symbols-outlined text-slate-600 bg-slate-100 p-1.5 rounded-lg">person_add</span>
             </div>
             <div className="z-10">
@@ -188,7 +188,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mt-1">
                 <span className="material-symbols-outlined text-sm">group</span>
                 <span className="text-emerald-600">+{summary.customers.newThisMonth}</span>
-                <span className="font-medium ml-1">new this month</span>
+                <span className="font-medium ml-1">{t('adminDash.newThisMonth')}</span>
               </div>
             </div>
           </div>
@@ -199,7 +199,7 @@ const AdminDashboard: React.FC = () => {
                <span className="material-symbols-outlined text-[100px]">ads_click</span>
             </div>
             <div className="flex justify-between items-start z-10">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tỷ lệ chuyển đổi (CR)</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('adminDash.conversionRate')}</p>
               <span className="material-symbols-outlined text-slate-600 bg-slate-100 p-1.5 rounded-lg">ads_click</span>
             </div>
             <div className="z-10">
@@ -207,7 +207,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 mt-1">
                 <span className="material-symbols-outlined text-sm">trending_down</span>
                 <span>{summary.cr.change}%</span>
-                <span className="text-slate-400 font-medium ml-1">threshold drop</span>
+                <span className="text-slate-400 font-medium ml-1">{t('adminDash.thresholdDrop')}</span>
               </div>
             </div>
           </div>
@@ -219,17 +219,17 @@ const AdminDashboard: React.FC = () => {
           <div className="xl:col-span-2 bg-surface-container-lowest p-8 rounded-2xl shadow-sm">
             <div className="flex justify-between items-center mb-10">
               <div>
-                <h4 className="text-xl font-bold text-on-surface">Revenue Overview</h4>
-                <p className="text-slate-500 text-sm">Monthly comparison between online and store sales.</p>
+                <h4 className="text-xl font-bold text-on-surface">{t('adminDash.revenueOverview')}</h4>
+                <p className="text-slate-500 text-sm">{t('adminDash.monthlyComparison')}</p>
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-red-600"></span>
-                  <span className="text-xs font-semibold text-slate-600">In-Store</span>
+                  <span className="text-xs font-semibold text-slate-600">{t('adminDash.inStore')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-slate-200"></span>
-                  <span className="text-xs font-semibold text-slate-600">Online</span>
+                  <span className="text-xs font-semibold text-slate-600">{t('adminDash.online')}</span>
                 </div>
               </div>
             </div>
@@ -265,14 +265,14 @@ const AdminDashboard: React.FC = () => {
           {/* Recent Orders */}
           <div className="xl:col-span-1 bg-surface-container-lowest p-8 rounded-2xl shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h4 className="text-xl font-bold text-on-surface">Recent Orders</h4>
-              <button onClick={() => navigate('/admin/orders')} className="text-xs font-bold text-red-600 hover:underline">View All</button>
+              <h4 className="text-xl font-bold text-on-surface">{t('adminDash.recentOrders')}</h4>
+              <button onClick={() => navigate('/admin/orders')} className="text-xs font-bold text-red-600 hover:underline">{t('adminDash.viewAll')}</button>
             </div>
             
             {recentOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 opacity-50">
                 <span className="material-symbols-outlined text-4xl mb-2">inbox</span>
-                <p className="text-sm">Chưa có đơn hàng nào</p>
+                <p className="text-sm">{t('adminDash.noOrders')}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -306,10 +306,10 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12">
           {/* Top Selling Products */}
           <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm">
-            <h4 className="text-lg font-bold text-on-surface mb-6">Top Selling Products</h4>
+            <h4 className="text-lg font-bold text-on-surface mb-6">{t('adminDash.topSelling')}</h4>
             
             {topProducts.length === 0 ? (
-               <div className="text-center py-8 opacity-50 text-sm">Không có dữ liệu</div>
+               <div className="text-center py-8 opacity-50 text-sm">{t('adminDash.noData')}</div>
             ) : (
               <div className="space-y-5">
                 {topProducts.map((p, i) => (
@@ -317,7 +317,7 @@ const AdminDashboard: React.FC = () => {
                     <img className="w-12 h-12 rounded-xl object-cover bg-slate-100" src={p.image || "https://placehold.co/100"} alt={p.name} />
                     <div className="flex-1 overflow-hidden">
                       <p className="text-sm font-bold text-on-surface truncate">{p.name}</p>
-                      <p className="text-[11px] text-slate-500">{p.soldCount} Đã bán</p>
+                      <p className="text-[11px] text-slate-500">{p.soldCount} {t('adminDash.sold')}</p>
                     </div>
                     <p className="text-sm font-bold text-red-600">{p.price.toLocaleString()} ₫</p>
                   </div>
@@ -328,10 +328,10 @@ const AdminDashboard: React.FC = () => {
 
           {/* Branch Performance */}
           <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm">
-            <h4 className="text-lg font-bold text-on-surface mb-6">Branch Performance</h4>
+            <h4 className="text-lg font-bold text-on-surface mb-6">{t('adminDash.branchPerformance')}</h4>
             
             {topBranches.length === 0 ? (
-               <div className="text-center py-8 opacity-50 text-sm">Không có dữ liệu</div>
+               <div className="text-center py-8 opacity-50 text-sm">{t('adminDash.noData')}</div>
             ) : (
               <div className="space-y-4">
                 {topBranches.map((b, i) => (
@@ -352,7 +352,7 @@ const AdminDashboard: React.FC = () => {
 
           {/* Customer Support Overview */}
           <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm">
-            <h4 className="text-lg font-bold text-on-surface mb-6">Support Overview</h4>
+            <h4 className="text-lg font-bold text-on-surface mb-6">{t('adminDash.supportOverview')}</h4>
             
             {support ? (
               <div className="flex flex-col items-center justify-center h-48 relative cursor-pointer group">
@@ -360,26 +360,26 @@ const AdminDashboard: React.FC = () => {
                   <div className="absolute inset-0 w-full h-full rounded-full border-[12px] border-transparent border-t-red-600 border-r-red-600 rotate-45"></div>
                   <div className="text-center">
                     <p className="text-xl font-black text-on-surface">{support.open}</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold">Open</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold">{t('adminDash.open')}</p>
                   </div>
                 </div>
                 <div className="mt-8 flex gap-4 w-full justify-between px-4">
                   <div className="text-center transform hover:-translate-y-1 transition-transform">
                     <p className="text-xs font-bold text-red-600">{support.urgent}</p>
-                    <p className="text-[10px] text-slate-400">Urgent</p>
+                    <p className="text-[10px] text-slate-400">{t('adminDash.urgent')}</p>
                   </div>
                   <div className="text-center transform hover:-translate-y-1 transition-transform">
                     <p className="text-xs font-bold text-emerald-600">{support.resolved}</p>
-                    <p className="text-[10px] text-slate-400">Resolved</p>
+                    <p className="text-[10px] text-slate-400">{t('adminDash.resolved')}</p>
                   </div>
                   <div className="text-center transform hover:-translate-y-1 transition-transform">
                     <p className="text-xs font-bold text-amber-500">{support.waiting}</p>
-                    <p className="text-[10px] text-slate-400">Waiting</p>
+                    <p className="text-[10px] text-slate-400">{t('adminDash.waiting')}</p>
                   </div>
                 </div>
               </div>
             ) : (
-                <div className="text-center py-8 opacity-50 text-sm">Không có dữ liệu</div>
+                <div className="text-center py-8 opacity-50 text-sm">{t('adminDash.noData')}</div>
             )}
           </div>
         </div>
@@ -391,7 +391,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <h4 className="text-lg font-bold text-on-surface flex items-center gap-2">
                 <span className="material-symbols-outlined text-orange-600">inventory_2</span>
-                Tồn kho thấp
+                {t('adminDash.lowStock')}
               </h4>
               <span className="px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-lg">{lowStockProducts.length} SP</span>
             </div>
@@ -399,21 +399,21 @@ const AdminDashboard: React.FC = () => {
             {lowStockProducts.length === 0 ? (
                <div className="text-center py-8 opacity-50 text-sm flex flex-col items-center">
                  <span className="material-symbols-outlined mb-2 text-3xl">check_circle</span>
-                 Tất cả sản phẩm đều đủ hàng
+                 {t('adminDash.allInStock')}
                </div>
             ) : (
               <div className="space-y-3">
                 {lowStockProducts.slice(0, 5).map((p, i) => (
                   <div key={p.id || p._id || `low-stock-${i}`} className="flex flex-col bg-white p-3 rounded-xl border border-orange-50/50 shadow-sm">
                     <div className="flex justify-between items-start">
-                       <p className="text-sm font-bold text-on-surface truncate pr-4">{p.product?.name || p.batch_code || 'Sản phẩm'}</p>
-                       <span className="text-xs font-black text-red-600 flex-shrink-0">Còn {p.quantity}</span>
+                       <p className="text-sm font-bold text-on-surface truncate pr-4">{p.product?.name || p.batch_code || t('adminDash.product')}</p>
+                       <span className="text-xs font-black text-red-600 flex-shrink-0">{t('adminDash.remaining', { count: p.quantity })}</span>
                     </div>
                   </div>
                 ))}
                 {lowStockProducts.length > 5 && (
                   <button onClick={() => navigate('/admin/products')} className="w-full text-center text-xs font-bold text-orange-600 hover:text-orange-700 mt-2 py-2">
-                    Xem tất cả ({lowStockProducts.length})
+                    {t('adminDash.viewAllCount', { count: lowStockProducts.length })}
                   </button>
                 )}
               </div>
@@ -425,7 +425,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <h4 className="text-lg font-bold text-on-surface flex items-center gap-2">
                 <span className="material-symbols-outlined text-red-600">event_busy</span>
-                Sắp hết hạn
+                {t('adminDash.expiringSoon')}
               </h4>
               <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-lg">{expiringProducts.length} Lô</span>
             </div>
@@ -433,7 +433,7 @@ const AdminDashboard: React.FC = () => {
             {expiringProducts.length === 0 ? (
                <div className="text-center py-8 opacity-50 text-sm flex flex-col items-center">
                  <span className="material-symbols-outlined mb-2 text-3xl">check_circle</span>
-                 Không có lô hàng sắp hết hạn
+                 {t('adminDash.noExpiring')}
                </div>
             ) : (
               <div className="space-y-3">
@@ -442,17 +442,17 @@ const AdminDashboard: React.FC = () => {
                   return (
                   <div key={p.id || p._id || `expiring-${i}`} className="flex flex-col bg-white p-3 rounded-xl border border-red-50/50 shadow-sm">
                     <div className="flex justify-between items-start">
-                       <p className="text-sm font-bold text-on-surface truncate pr-4">{p.product?.name || p.batch_code || 'Sản phẩm'}</p>
+                       <p className="text-sm font-bold text-on-surface truncate pr-4">{p.product?.name || p.batch_code || t('adminDash.product')}</p>
                        <span className={`text-xs font-black flex-shrink-0 ${daysLeft < 0 ? 'text-red-700' : 'text-red-500'}`}>
-                         {daysLeft < 0 ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`}
+                         {daysLeft < 0 ? t('adminDash.expired') : t('adminDash.daysLeft', { days: daysLeft })}
                        </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">Lô: {p.batch_code} • Kho: {p.quantity}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{t('adminDash.batchLabel')} {p.batch_code} • {t('adminDash.stockLabel')} {p.quantity}</p>
                   </div>
                 )})}
                 {expiringProducts.length > 5 && (
                   <button onClick={() => navigate('/admin/products')} className="w-full text-center text-xs font-bold text-red-600 hover:text-red-700 mt-2 py-2">
-                    Xem tất cả ({expiringProducts.length})
+                    {t('adminDash.viewAllCount', { count: expiringProducts.length })}
                   </button>
                 )}
               </div>

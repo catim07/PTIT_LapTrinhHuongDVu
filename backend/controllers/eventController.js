@@ -90,8 +90,38 @@ export const bulkDelete = async (req, res) => {
 };
 
 export const comments = async (req, res) => {
-  try { return res.json({ success: true, data: await EventComment.find({ event_id: req.params.id, status: 'active' }).sort('-created_at') }); }
-  catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+  try {
+    const cmts = await EventComment.find({ event_id: req.params.id, status: 'active' })
+      .sort('created_at') // Sort ascending for threaded view or keep descending
+      .lean();
+      
+    // Manual populate to ensure avatar is always up-to-date and accurate
+    const userIds = cmts.map(c => c.user_id).filter(Boolean);
+    
+    // We only query valid ObjectIds to prevent cast errors
+    const validUserIds = userIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+    const users = await mongoose.model('User').find({ _id: { $in: validUserIds } }).select('avatar full_name username').lean();
+    
+    const userMap = {};
+    for (const u of users) {
+      userMap[u._id.toString()] = u;
+    }
+
+    const data = cmts.map(c => {
+      const u = c.user_id ? userMap[c.user_id.toString()] : null;
+      if (u) {
+        c.user_avatar = u.avatar || null;
+        c.user_name = u.full_name || u.username || c.user_name;
+      }
+      return c;
+    });
+
+    // We can also sort comments here: parent comments descending, replies ascending, etc.
+    // Let's sort by created_at descending generally, but frontend handles it anyway
+    data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    return res.json({ success: true, data });
+  } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
 };
 
 export const addComment = async (req, res) => {
@@ -121,5 +151,47 @@ export const categories = async (req, res) => {
   try {
     const cats = await EventPost.distinct('category_id');
     return res.json({ success: true, data: cats });
+  } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+};
+
+export const likeEvent = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const ev = await EventPost.findById(req.params.id);
+    if (!ev) return res.status(404).json({ success: false, message: 'Event not found' });
+    
+    const idx = ev.liked_by.indexOf(userId);
+    if (idx !== -1) {
+      // unlike
+      ev.liked_by.splice(idx, 1);
+      ev.likes = Math.max(0, (ev.likes || 1) - 1);
+    } else {
+      // like
+      ev.liked_by.push(userId);
+      ev.likes = (ev.likes || 0) + 1;
+    }
+    await ev.save();
+    return res.json({ success: true, likes: ev.likes, isLiked: idx === -1 });
+  } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+};
+
+export const likeComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const comment = await EventComment.findById(req.params.commentId);
+    if (!comment) return res.status(404).json({ success: false, message: 'Comment not found' });
+    
+    const idx = comment.liked_by.indexOf(userId);
+    if (idx !== -1) {
+      // unlike
+      comment.liked_by.splice(idx, 1);
+      comment.likes = Math.max(0, (comment.likes || 1) - 1);
+    } else {
+      // like
+      comment.liked_by.push(userId);
+      comment.likes = (comment.likes || 0) + 1;
+    }
+    await comment.save();
+    return res.json({ success: true, likes: comment.likes, isLiked: idx === -1 });
   } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
 };

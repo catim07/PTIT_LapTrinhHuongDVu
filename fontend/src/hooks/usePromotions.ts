@@ -23,7 +23,7 @@ export const usePromotions = () => {
   };
 
   // Process filters
-  let filteredData = [...data];
+  const filteredData = [...data];
 
   if (filters.category && filters.category !== 'Tất cả') {
     // Just a basic mock for demonstration

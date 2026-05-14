@@ -27,6 +27,9 @@ const eventCommentSchema = new mongoose.Schema({
   user_name: { type: String, default: '' },
   user_avatar: { type: String, default: null },
   content: { type: String, required: true },
+  parent_id: { type: mongoose.Schema.Types.Mixed, default: null },
+  likes: { type: Number, default: 0 },
+  liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   status: { type: String, default: 'active' },
 }, { timestamps: { createdAt: 'created_at' } });
 

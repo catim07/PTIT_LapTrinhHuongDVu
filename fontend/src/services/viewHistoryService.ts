@@ -1,5 +1,8 @@
 import type { User } from '../types';
 import { dataService } from './dataService';
+import httpClient from '../api/httpClient';
+import { endpoints } from '../api/endpoints';
+import i18n from '../i18n';
 import type { ViewHistoryItem, ViewHistoryTrackPayload } from '../types/viewHistory';
 import { normalizeViewHistoryItem } from '../types/viewHistory';
 
@@ -40,7 +43,7 @@ const normalizeTrackPayload = (payload: ViewHistoryTrackPayload): ViewHistoryTra
   return {
     product_id: toSafeString(payload.product_id || ''),
     branch_product_id: toSafeString(payload.branch_product_id || '') || undefined,
-    product_name: toSafeString(payload.product_name || '') || 'San pham',
+    product_name: toSafeString(payload.product_name || '') || i18n.t('common.product'),
     product_image: toSafeString(payload.product_image || '') || 'https://via.placeholder.com/300x300?text=Product',
     price: toSafeNumber(payload.price, 0),
     original_price: toSafeNumber(payload.original_price, 0),
@@ -113,7 +116,7 @@ const upsertLocalHistory = (payload: ViewHistoryTrackPayload): ViewHistoryItem |
     id: buildLocalId(productId),
     product_id: productId,
     branch_product_id: payload.branch_product_id || null,
-    product_name: payload.product_name || existing?.product_name || 'San pham',
+    product_name: payload.product_name || existing?.product_name || i18n.t('common.product'),
     product_image: payload.product_image || existing?.product_image || '',
     price: payload.price ?? existing?.price ?? 0,
     original_price: payload.original_price ?? existing?.original_price ?? 0,
@@ -259,31 +262,19 @@ export const saveViewHistory = async (
       await mergeLocalIntoServer(auth).catch(() => {});
     }
 
-    const res = await fetch('/api/view-history', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        product_id: payload.product_id,
-        name: payload.product_name,
-        image: payload.product_image,
-        price: payload.price,
-        product_name: payload.product_name,
-        product_image: payload.product_image,
-        branch_product_id: payload.branch_product_id,
-        original_price: payload.original_price,
-        category: payload.category,
-        viewed_at: payload.viewed_at,
-      }),
+    const res = await httpClient.post(endpoints.viewHistory.track, {
+      product_id: payload.product_id,
+      name: payload.product_name,
+      image: payload.product_image,
+      price: payload.price,
+      product_name: payload.product_name,
+      product_image: payload.product_image,
+      branch_product_id: payload.branch_product_id,
+      original_price: payload.original_price,
+      category: payload.category,
+      viewed_at: payload.viewed_at,
     });
-
-    if (!res.ok) {
-      throw new Error(`VIEW_HISTORY_HTTP_${res.status}`);
-    }
-
-    const responsePayload = await res.json().catch(() => null);
+    const responsePayload = res?.data ?? res;
     const normalized = normalizeViewHistoryItem(responsePayload?.data || responsePayload);
     return normalized || upsertLocalHistory(payload);
   } catch (err) {
@@ -300,17 +291,8 @@ export const getViewHistory = async (): Promise<ViewHistoryItem[]> => {
   }
 
   try {
-    const res = await fetch('/api/view-history', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`VIEW_HISTORY_HTTP_${res.status}`);
-    }
-
-    const responsePayload = await res.json().catch(() => null);
+    const res = await httpClient.get(endpoints.viewHistory.list);
+    const responsePayload = res?.data ?? res;
     const rows = normalizeRemoteRows(Array.isArray(responsePayload?.data) ? responsePayload.data : []);
     if (rows.length > 0) {
       writeLocalHistory(rows);

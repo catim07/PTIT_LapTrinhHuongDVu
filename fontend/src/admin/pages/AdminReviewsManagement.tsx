@@ -44,7 +44,7 @@ const AdminReviewsManagement: React.FC = () => {
       setStats(statsRes || {});
       setReviews(listRes?.data || []);
       setTotal(listRes?.meta?.total || 0);
-    } catch (err: any) {
+    } catch {
       toast.error('Lỗi tải đánh giá');
     } finally {
       setLoading(false);

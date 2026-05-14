@@ -85,11 +85,11 @@ const Products: React.FC = () => {
 
   const handleAddToCart = async (item: any) => {
     if (!currentBranchId) {
-      toast.error('Vui lòng chọn chi nhánh trước khi mua hàng');
+      toast.error(t('common.selectBranchFirst'));
       return;
     }
     if (item.stock <= 0) {
-      toast.error(t('product.outOfStock') || 'Hết hàng tại chi nhánh này');
+      toast.error(t('product.outOfStock'));
       return;
     }
     if (!isAuthenticated) {
@@ -115,7 +115,7 @@ const Products: React.FC = () => {
       })).unwrap();
       toast.success(t('product.addedToCart', { name: item.name }));
     } catch (error: any) {
-      toast.error(typeof error === 'string' ? error : (error?.message || 'Lỗi thêm vào giỏ hàng'));
+      toast.error(typeof error === 'string' ? error : (error?.message || t('common.addToCartError')));
     }
   };
 
@@ -127,33 +127,33 @@ const Products: React.FC = () => {
   const handleToggleCompare = (item: any) => {
     const productId = String(item.product_id || item.id || item._id || '');
     if (!productId) {
-      toast.error('Không thể thêm sản phẩm này vào so sánh');
+      toast.error(t('compare.cannotAdd'));
       return;
     }
 
     const isSelected = compareIds.includes(productId);
     if (isSelected) {
       dispatch(removeCompareItem(productId));
-      toast.success('Đã bỏ khỏi danh sách so sánh');
+      toast.success(t('compare.removed'));
       return;
     }
 
     if (compareIds.length >= compareMaxItems) {
-      toast.error(`Chỉ được so sánh tối đa ${compareMaxItems} sản phẩm`);
+      toast.error(t('compare.maxItems', { max: compareMaxItems }));
       return;
     }
 
     dispatch(addCompareItem({
       product_id: productId,
       branch_product_id: String(item.branch_product_id || item.id || ''),
-      name: item.name || 'Sản phẩm',
+      name: item.name || t('common.product'),
       image: item.images?.[0] || item.thumbnail || '',
       price: Number(item.price) || 0,
       original_price: Number(item.original_price) || 0,
       discount_percent: Number(item.discount_percent) || 0,
       brand: item.brand || '',
     }));
-    toast.success('Đã thêm vào danh sách so sánh');
+    toast.success(t('compare.added'));
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -380,12 +380,12 @@ const Products: React.FC = () => {
                         )}
                         {item.is_new && (
                           <span className="bg-blue-600 text-white text-[10px] font-extrabold px-2 py-1 rounded shadow-lg">
-                            🆕 MỚI
+                            🆕 {t('product.badgeNew')}
                           </span>
                         )}
                         {item.is_best_seller && (
                           <span className="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded shadow-lg">
-                            🔥 BÁN CHẠY
+                            🔥 {t('product.badgeBestSeller')}
                           </span>
                         )}
                         {item.promotions && item.promotions.map((p: any, idx: number) => (
@@ -424,11 +424,11 @@ const Products: React.FC = () => {
                         <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
                           {item.brand || 'Lotte Selection'}
                         </span>
-                        {item.average_rating && (
+                        {item.average_rating > 0 && (
                           <div className="flex items-center gap-0.5 text-amber-400">
                             <span className="material-symbols-outlined text-xs fill-1">star</span>
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                              {item.average_rating.toFixed(1)}
+                              {Number(item.average_rating).toFixed(1)}
                             </span>
                             <span className="text-[10px] text-slate-400">({item.review_count || 0})</span>
                           </div>
@@ -458,9 +458,9 @@ const Products: React.FC = () => {
                       <div className="mt-auto">
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-xl font-extrabold text-primary">
-                            {item.price.toLocaleString('vi-VN')}đ
+                            {item.price > 0 ? `${item.price.toLocaleString('vi-VN')}đ` : t('product.contactPrice')}
                           </span>
-                          {item.original_price && item.original_price > item.price && (
+                          {item.original_price && item.original_price > item.price && item.price > 0 && (
                             <span className="text-sm text-slate-400 line-through">
                               {item.original_price.toLocaleString('vi-VN')}đ
                             </span>
@@ -493,10 +493,10 @@ const Products: React.FC = () => {
                                     ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-white/10 dark:text-slate-500'
                                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200'
                               }`}
-                              title={compareDisabled ? `Chỉ so sánh tối đa ${compareMaxItems} sản phẩm` : 'Thêm vào so sánh'}
+                              title={compareDisabled ? t('compare.maxTooltip', { max: compareMaxItems }) : t('compare.addTooltip')}
                             >
                               <span className="material-symbols-outlined text-[16px]">balance</span>
-                              {isCompared ? 'Đã chọn' : 'So sánh'}
+                              {isCompared ? t('compare.selected') : t('compare.compare')}
                             </button>
 
                             {/* Nút giỏ hàng - Ngăn chuyển trang */}

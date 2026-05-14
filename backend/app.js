@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url';
 import passport from 'passport';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
-import MongoStore from 'rate-limit-mongo';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import mongoose from 'mongoose';
@@ -57,6 +56,7 @@ import { ensureRbacSeed } from './services/rbacService.js';
 import { ensureMarketingSeed } from './services/marketingSeedService.js';
 
 import { errorHandler, notFound } from './middlewares/errorHandler.js';
+import { localizationMiddleware } from './middlewares/localization.js';
 import { configurePassportFacebook } from './config/passportFacebook.js';
 import { setupSwagger } from './config/swagger.js';
 import { seedDefaultFlags } from './services/featureFlagService.js';
@@ -107,7 +107,7 @@ app.use(cors({
   origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'X-Language'],
 }));
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
@@ -130,23 +130,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply DB Circuit Breaker
-app.use(dbCircuitBreakerMiddleware);
-
-// Performance tracking middleware
-app.use(trackPerformance);
-
-app.use(express.json({ limit: '500kb' }));
-app.use(express.urlencoded({ extended: true, limit: '500kb' }));
-app.use(mongoSanitize());
-app.use(morgan('dev'));
-app.use(passport.initialize());
-app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
-
-// Swagger API Documentation
-setupSwagger(app);
-
-// Health check
+// Health check — MUST be before circuit breaker so it always responds
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -159,36 +143,50 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Apply DB Circuit Breaker (checks real mongoose.connection.readyState)
+app.use(dbCircuitBreakerMiddleware);
+
+// Performance tracking middleware
+app.use(trackPerformance);
+
+app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+app.use(mongoSanitize());
+app.use(morgan('dev'));
+app.use(passport.initialize());
+app.use(localizationMiddleware);
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
+
+// Swagger API Documentation
+setupSwagger(app);
+
 // Rate limiters
 const smartKeyGenerator = (req) => {
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-  const userAgent = req.headers['user-agent'] || 'unknown';
+  // Normalize IPv6-mapped IPv4 addresses (::ffff:127.0.0.1 → 127.0.0.1)
+  let ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  if (ip.startsWith('::ffff:')) ip = ip.slice(7);
+  const userAgent = (req.headers['user-agent'] || 'unknown').replace(/\s/g, '').substring(0, 20);
   const tokenPart = req.headers.authorization ? req.headers.authorization.substring(0, 30) : 'guest';
-  // Combine IP, fingerprint, and token to prevent multi-token bypass
-  return `${ip}-${userAgent.replace(/\s/g, '').substring(0, 20)}-${tokenPart}`;
+  return `${ip}-${userAgent}-${tokenPart}`;
 };
 
 const authLimiter = rateLimit({ 
-  store: new MongoStore({
-    uri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/lotte_mart',
-    expireTimeMs: 15 * 60 * 1000,
-    errorHandler: console.error.bind(null, 'rate-limit-mongo')
-  }),
   windowMs: 15 * 60 * 1000, 
   max: 50, 
   keyGenerator: smartKeyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }, // allow custom keyGenerator without IPv6 validation error
   message: { success: false, message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' } 
 });
 
 const orderLimiter = rateLimit({ 
-  store: new MongoStore({
-    uri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/lotte_mart',
-    expireTimeMs: 15 * 60 * 1000,
-    errorHandler: console.error.bind(null, 'rate-limit-mongo')
-  }),
   windowMs: 15 * 60 * 1000, 
   max: 100, 
   keyGenerator: smartKeyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' } 
 });
 

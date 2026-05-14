@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Header from './component/Header/Header.tsx';
 import Footer from './component/footer/Footer.tsx';
 import { AuthGuard } from './component/AuthGuard.tsx';
@@ -8,6 +9,7 @@ import { authVerify } from './slices/authSlice.ts';
 import { loadProductsData } from './slices/productSlice.ts';
 import { loadBranches } from './slices/branchSlice.ts';
 import { addNotification } from './slices/notificationSlice.ts';
+import { updateCartFromServer } from './slices/cartSlice.ts';
 import ToastContainer from './components/Toast/ToastContainer.tsx';
 import { socket } from './services/socket.ts';
 
@@ -73,6 +75,7 @@ import AdminStockMovements from './admin/pages/AdminStockMovements.tsx';
 import AdminRolesPermissions from './admin/pages/AdminRolesPermissions.tsx';
 import AdminAuditLogs from './admin/pages/AdminAuditLogs.tsx';
 import AdminBranchLocations from './admin/pages/AdminBranchLocations.tsx';
+import AdminReturnRequests from './admin/pages/AdminReturnRequests.tsx';
 import AdminPermissionGuard from './admin/guards/AdminPermissionGuard.tsx';
 import CarrotScene from './pages/CarrotScene.tsx';
 import About from './pages/About.tsx';
@@ -86,6 +89,7 @@ function App() {
   const location = useLocation();
   const productState = useAppSelector((state) => state.product);
   const authState = useAppSelector((state) => state.auth);
+  const { i18n } = useTranslation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
@@ -140,7 +144,7 @@ function App() {
         }
       }).catch(() => {});
     });
-  }, [dispatch]);
+  }, [dispatch, i18n.language]);
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -175,10 +179,16 @@ function App() {
         dispatch(addNotification(notification));
       };
 
+      const handleCartUpdated = (data: { branch_id: string; cart?: any; cleared?: boolean }) => {
+        dispatch(updateCartFromServer(data));
+      };
+
       socket.on('new_notification', handleNewNotification);
+      socket.on('cart_updated', handleCartUpdated);
 
       return () => {
         socket.off('new_notification', handleNewNotification);
+        socket.off('cart_updated', handleCartUpdated);
       };
     }
   }, [authState.isAuthenticated, authState.user, isAdminRoute, dispatch]);
@@ -214,7 +224,7 @@ function App() {
           </div>
         </div>
       )}
-      <Routes>
+      <Routes key={i18n.language}>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
@@ -285,12 +295,13 @@ function App() {
             <Route path="orders" element={<AdminLotteMartOrderManagement />} />
             <Route path="reviews" element={<AdminReviewsManagement />} />
             <Route path="support" element={<AdminSupportTickets />} />
+            <Route path="returns" element={<AdminReturnRequests />} />
             <Route path="suppliers" element={<AdminPermissionGuard permission="suppliers.read"><AdminSuppliers /></AdminPermissionGuard>} />
             <Route path="import-orders" element={<AdminPermissionGuard permission="imports.read"><AdminImportOrders /></AdminPermissionGuard>} />
             <Route path="import-receipts" element={<AdminPermissionGuard permission="imports.read"><AdminImportReceipts /></AdminPermissionGuard>} />
             <Route path="inventory-batches" element={<AdminPermissionGuard permission="inventory.read"><AdminInventoryBatches /></AdminPermissionGuard>} />
             <Route path="stock-movements" element={<AdminPermissionGuard permission="inventory.read"><AdminStockMovements /></AdminPermissionGuard>} />
-            <Route path="roles" element={<AdminPermissionGuard permission="settings.read"><AdminRolesPermissions /></AdminPermissionGuard>} />
+            <Route path="roles" element={<AdminPermissionGuard superAdminOnly><AdminRolesPermissions /></AdminPermissionGuard>} />
             <Route path="audit-logs" element={<AdminPermissionGuard permission="audit.read"><AdminAuditLogs /></AdminPermissionGuard>} />
             <Route path="branch-locations" element={<AdminPermissionGuard permission="settings.read"><AdminBranchLocations /></AdminPermissionGuard>} />
           </Route>

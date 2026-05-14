@@ -27,7 +27,6 @@ const importReceiptSchema = new mongoose.Schema({
   updated_by: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-importReceiptSchema.index({ receipt_code: 1 });
 importReceiptSchema.index({ import_order_id: 1, created_at: -1 });
 importReceiptSchema.index({ branch_id: 1, created_at: -1 });
 

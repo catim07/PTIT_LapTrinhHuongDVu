@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadCoupons } from '../slices/couponSlice';
 import { dataService } from '../services/dataService';
 import { toast } from '../components/Toast/toastEvent';
 
 const MyCoupons: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { data: coupons, status, error } = useAppSelector(state => state.coupon);
   const { user: currentUser } = useAppSelector(state => state.auth);
@@ -79,7 +81,7 @@ const MyCoupons: React.FC = () => {
               <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
                 Mã giảm giá của tôi
               </h1>
-              <p className="text-slate-500">Quản lý và sử dụng các mã ưu đãi dành riêng cho bạn</p>
+              <p className="text-slate-500">{t('myCoupons.desc')}</p>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
@@ -97,9 +99,7 @@ const MyCoupons: React.FC = () => {
               <button 
                 onClick={handleApplyCode}
                 className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-primary/10 shrink-0"
-              >
-                Áp dụng
-              </button>
+              >{t('common.apply')}</button>
             </div>
           </div>
 
@@ -177,9 +177,7 @@ const MyCoupons: React.FC = () => {
                              <button onClick={() => copyToClipboard(code)} className="size-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
                                 <span className="material-symbols-outlined text-sm">content_copy</span>
                              </button>
-                             <button onClick={() => { setCodeInput(code); handleApplyCode(); }} className="bg-primary text-white text-[12px] font-bold px-4 py-1.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
-                                Sử dụng ngay
-                             </button>
+                             <button onClick={() => { setCodeInput(code); handleApplyCode(); }} className="bg-primary text-white text-[12px] font-bold px-4 py-1.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">{t('myCoupons.useNow')}</button>
                            </>
                         ) : (
                            <button className="bg-slate-200 text-slate-500 cursor-not-allowed text-[12px] font-bold px-4 py-1.5 rounded-lg" disabled>

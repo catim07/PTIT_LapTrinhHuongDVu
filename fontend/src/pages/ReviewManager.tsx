@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadUserReviews } from '../slices/reviewSlice';
 import { dataService } from '../services/dataService';
 import { reviewService } from '../services/reviewService';
 import { toast } from '../components/Toast/toastEvent';
+import { resolveImageUrl, fallbackProductImage } from '../utils/imageUrl';
 
 const ReviewManager: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector(state => state.auth);
   const { userReviews, status } = useAppSelector(state => state.review);
@@ -79,7 +82,7 @@ const ReviewManager: React.FC = () => {
   };
 
   if (status === 'loading') {
-    return <div className="text-center py-20"><span className="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span><p>Đang tải đánh giá...</p></div>;
+    return <div className="text-center py-20"><span className="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span><p>{t('reviews.loading')}</p></div>;
   }
 
   const averageRating = userReviews.length > 0 
@@ -100,15 +103,15 @@ const ReviewManager: React.FC = () => {
             <div className="mt-6 flex gap-8">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-primary">{userReviews.length}</span>
-                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Tổng đánh giá</span>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">{t('reviews.totalReviews')}</span>
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-primary">{userReviews.reduce((sum, r) => sum + (r.likes || 0), 0)}</span>
-                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Lượt thích</span>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">{t('reviews.likes')}</span>
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-primary">{averageRating}</span>
-                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Điểm trung bình</span>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">{t('reviews.avgScore')}</span>
               </div>
             </div>
           </div>
@@ -157,15 +160,18 @@ const ReviewManager: React.FC = () => {
             <div key={review.id} className="bg-white dark:bg-slate-900 rounded-xl border border-primary/5 shadow-sm overflow-hidden flex flex-col group p-6">
               <div className="flex flex-col sm:flex-row gap-6">
                 <div className="w-full sm:w-32 h-32 sm:h-auto overflow-hidden relative rounded-lg shrink-0">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    src={review.images?.[0] || "https://aida-public.s3.amazonaws.com/AB6AXuDQjTrXyq5NsYlOb5T_GOrsNtLobjNw4cLNOHmD6KtdmnIJziVMlUMOAQFAF6yfN8qPl0j4nKB92PVSAqOnHPsH9dwNRCphGyxcSN-mR79Whlj95ED_FkwsoEzYEWI6ZtwgxFZClQ1UFVaAFLHp4M8o0lsxjoRIA7jMxSNZS66N6tvU_iNG9LTJ6Jras3dMkfvbp4uoAYnzVhp4JhBECQfwhujKxqGHIH5hc6w3pN5tua-CxmJhrKQwB5J-decamkXBfX_FlCBqHuI"}
-                    alt="Product placeholder"
-                  />
+                  {(() => {
+                    const imageSrc = resolveImageUrl(review.product_image || review.images?.[0] || '');
+                    return (
+                      <img
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        src={imageSrc || fallbackProductImage}
+                        alt={review.product_name || 'Product'}
+                      />
+                    );
+                  })()}
                   {review.status === 'VERIFIED' && (
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold text-slate-800 shadow-sm uppercase tracking-tighter">
-                    Đã xác thực
-                  </div>
+                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold text-slate-800 shadow-sm uppercase tracking-tighter">{t('reviews.verified')}</div>
                   )}
                 </div>
 
@@ -174,7 +180,7 @@ const ReviewManager: React.FC = () => {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-                          Sản phẩm ID: {review.product_id}
+                          {review.product_name || `Sản phẩm #${review.product_id}`}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex text-amber-400">
@@ -203,14 +209,14 @@ const ReviewManager: React.FC = () => {
                   <div className="mt-4 pt-4 border-t border-primary/5 flex items-center justify-between">
                     <div className="flex gap-4">
                       <div className="flex flex-col">
-                        <span className="text-xs text-slate-400 font-semibold">Điểm của bạn</span>
+                        <span className="text-xs text-slate-400 font-semibold">{t('reviews.yourScore')}</span>
                         <div className="flex items-center gap-1">
                           <span className="text-sm font-bold">{review.rating}</span>
                           <span className="material-symbols-outlined text-xs text-amber-400 fill-1">star</span>
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => handleReply(review.id)} className="text-primary text-xs font-bold hover:underline">Phản hồi</button>
+                    <button onClick={() => handleReply(review.id)} className="text-primary text-xs font-bold hover:underline">{t('reviews.feedback')}</button>
                   </div>
                 </div>
               </div>
@@ -241,9 +247,9 @@ const ReviewManager: React.FC = () => {
         {editingReviewId && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
             <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl p-6">
-              <h3 className="text-lg font-bold mb-4">Chỉnh sửa đánh giá</h3>
+              <h3 className="text-lg font-bold mb-4">{t('reviews.editReview')}</h3>
 
-              <label className="block text-sm font-medium mb-2">Điểm đánh giá</label>
+              <label className="block text-sm font-medium mb-2">{t('reviews.reviewScore')}</label>
               <select
                 value={editRating}
                 onChange={(e) => setEditRating(Number(e.target.value))}
@@ -256,7 +262,7 @@ const ReviewManager: React.FC = () => {
                 <option value={1}>1 sao</option>
               </select>
 
-              <label className="block text-sm font-medium mb-2">Nội dung đánh giá</label>
+              <label className="block text-sm font-medium mb-2">{t('reviews.reviewContent')}</label>
               <textarea
                 value={editComment}
                 onChange={(e) => setEditComment(e.target.value)}
@@ -270,9 +276,7 @@ const ReviewManager: React.FC = () => {
                   onClick={() => setEditingReviewId(null)}
                   className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
                   disabled={isSavingEdit}
-                >
-                  Hủy
-                </button>
+                >{t('common.cancel')}</button>
                 <button
                   type="button"
                   onClick={handleSaveEdit}

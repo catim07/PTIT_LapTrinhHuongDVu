@@ -5,11 +5,14 @@ import AdminBranchFilter from '../../admin/components/AdminBranchFilter';
 import { adminLogout, setAdminBranch } from '../../admin/slices/adminAuthSlice';
 import { useAppSelector } from '../../store';
 import { toast } from '../Toast/toastEvent';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../component/Header/LanguageSwitcher';
 
 const AdminHeader: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { adminBranchId } = useAppSelector(state => state.adminAuth);
+  const { t } = useTranslation();
 
   const [search, setSearch] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -27,7 +30,7 @@ const AdminHeader: React.FC = () => {
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && search.trim()) {
-      toast.info(`Đang tìm kiếm: ${search.trim()}`);
+      toast.info(t('admin.searching', { query: search.trim() }));
     }
   };
 
@@ -45,7 +48,7 @@ const AdminHeader: React.FC = () => {
           </div>
           <input
             className="w-full bg-surface-container-low dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
-            placeholder="Tìm kiếm bài viết, sự kiện, đơn hàng..."
+            placeholder={t('admin.searchPlaceholder')}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -63,24 +66,26 @@ const AdminHeader: React.FC = () => {
 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <button onClick={() => toast.info('Chưa có thông báo mới')} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 relative transition-colors">
+          <button onClick={() => toast.info(t('admin.noNotifications'))} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 relative transition-colors">
             <span className="material-symbols-outlined leading-none block">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
           </button>
-          <button onClick={() => toast.info('Hỗ trợ đang được cập nhật')} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors">
+          <button onClick={() => toast.info(t('admin.supportUpdating'))} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors">
             <span className="material-symbols-outlined leading-none block">help_outline</span>
           </button>
-          <button onClick={toggleDarkMode} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title={isDarkMode ? 'Tắt chế độ tối' : 'Bật chế độ tối'}>
+          <button onClick={toggleDarkMode} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title={isDarkMode ? t('admin.darkModeOff') : t('admin.darkModeOn')}>
             <span className="material-symbols-outlined leading-none block">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
           </button>
         </div>
+
+        <LanguageSwitcher />
 
         <button 
           onClick={handleLogout}
           className="bg-primary hover:bg-primary-container text-white px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-primary/20"
         >
           <span className="material-symbols-outlined text-sm leading-none block">logout</span>
-          Đăng xuất
+          {t('admin.logout')}
         </button>
       </div>
     </header>

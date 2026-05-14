@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { orderService } from '../services/orderService';
 import { supportService } from '../services/supportService';
@@ -7,6 +8,7 @@ import { useAppSelector } from '../store';
 import type { Order } from '../types';
 
 const OrderTracking: React.FC = () => {
+  const { t } = useTranslation();
     const { orderId: pathOrderId } = useParams<{ orderId?: string }>();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
@@ -51,7 +53,7 @@ const OrderTracking: React.FC = () => {
     }, [orderIdParam]);
 
     if (isLoading) {
-      return <div className="p-10 text-center"><p>Đang tải thông tin theo dõi...</p></div>;
+      return <div className="p-10 text-center"><p>{t('orderTracking.loading')}</p></div>;
     }
 
     if (error) {
@@ -59,7 +61,7 @@ const OrderTracking: React.FC = () => {
     }
 
     if (!trackingData && !order) {
-        return <div className="p-10 text-center"><p>Không tìm thấy đơn hàng</p></div>;
+        return <div className="p-10 text-center"><p>{t('orderTracking.notFound')}</p></div>;
     }
 
     const tracking = trackingData || order?.tracking;
@@ -123,27 +125,24 @@ const OrderTracking: React.FC = () => {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-            <Link to="/" className="hover:text-primary">Trang chủ</Link> <span className="material-symbols-outlined text-xs">chevron_right</span> <span>Theo dõi đơn hàng</span>
+            <Link to="/" className="hover:text-primary">{t('common.home')}</Link> <span className="material-symbols-outlined text-xs">chevron_right</span> <span>{t('orderTracking.title')}</span>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Trạng thái đơn hàng</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight mb-2">{t('orderTracking.status')}</h2>
               <p className="text-primary font-medium">Mã đơn hàng: #{orderDisplayId}</p>
             </div>
             <div className="flex gap-3 flex-wrap">
               <button onClick={() => setShowSupportModal(true)} className="px-6 py-2.5 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary/20 transition-all flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">support_agent</span> Liên hệ hỗ trợ
-              </button>
+                <span className="material-symbols-outlined text-lg">support_agent</span>{t('orderDetail.contactSupport')}</button>
               {isCancellable && (
                  <button onClick={() => setShowCancelModal(true)} className="px-6 py-2.5 bg-white border-2 border-red-400 text-red-500 font-bold rounded-xl hover:bg-red-50 transition-all flex items-center gap-2">
-                   <span className="material-symbols-outlined text-lg">cancel</span> Hủy đơn hàng
-                 </button>
+                   <span className="material-symbols-outlined text-lg">cancel</span>{t('orderDetail.cancelOrder')}</button>
               )}
               {!isCancellable && currentStatus !== 'CANCELLED' && currentStatus !== 'DELIVERED' && currentStatus !== 'RETURNED' && (
                  <button onClick={() => setShowSupportModal(true)} className="px-6 py-2.5 bg-slate-100 border border-slate-200 text-slate-400 font-bold rounded-xl cursor-help flex items-center gap-2" title="Đơn hàng không thể hủy trực tiếp. Vui lòng liên hệ hỗ trợ.">
-                   <span className="material-symbols-outlined text-lg">block</span> Không thể hủy
-                 </button>
+                   <span className="material-symbols-outlined text-lg">block</span>{t('orderDetail.cannotCancel')}</button>
               )}
             </div>
           </div>
@@ -155,7 +154,7 @@ const OrderTracking: React.FC = () => {
               {currentStatus === 'CANCELLED' ? (
                 <div className="flex flex-col items-center gap-3 py-6">
                   <div className="w-16 h-16 rounded-full bg-red-100 text-red-500 flex items-center justify-center"><span className="material-symbols-outlined text-3xl">cancel</span></div>
-                  <p className="text-lg font-bold text-red-500">Đơn hàng đã bị hủy</p>
+                  <p className="text-lg font-bold text-red-500">{t('orderTracking.cancelled')}</p>
                 </div>
               ) : (
               <div className="relative flex justify-between items-start">
@@ -164,23 +163,23 @@ const OrderTracking: React.FC = () => {
 
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center"><span className="material-symbols-outlined">check</span></div>
-                  <p className="text-xs font-bold">Đã đặt</p>
+                  <p className="text-xs font-bold">{t('orderTracking.placed')}</p>
                 </div>
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${['CONFIRMED','PROCESSING','SHIPPING','DELIVERED'].includes(currentStatus) ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><span className="material-symbols-outlined">task_alt</span></div>
-                  <p className={`text-xs font-bold ${currentStatus === 'CONFIRMED' ? 'text-primary' : 'text-slate-400'}`}>Xác nhận</p>
+                  <p className={`text-xs font-bold ${currentStatus === 'CONFIRMED' ? 'text-primary' : 'text-slate-400'}`}>{t('orderTracking.confirmed')}</p>
                 </div>
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${['PROCESSING','SHIPPING','DELIVERED'].includes(currentStatus) ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><span className="material-symbols-outlined">inventory_2</span></div>
-                  <p className={`text-xs font-bold ${currentStatus === 'PROCESSING' ? 'text-primary' : 'text-slate-400'}`}>Chuẩn bị</p>
+                  <p className={`text-xs font-bold ${currentStatus === 'PROCESSING' ? 'text-primary' : 'text-slate-400'}`}>{t('orderTracking.preparing')}</p>
                 </div>
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${['SHIPPING','DELIVERED'].includes(currentStatus) ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><span className="material-symbols-outlined">local_shipping</span></div>
-                  <p className={`text-xs font-bold ${currentStatus === 'SHIPPING' ? 'text-primary' : 'text-slate-400'}`}>Đang giao</p>
+                  <p className={`text-xs font-bold ${currentStatus === 'SHIPPING' ? 'text-primary' : 'text-slate-400'}`}>{t('orderTracking.shipping')}</p>
                 </div>
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStatus === 'DELIVERED' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><span className="material-symbols-outlined">package_2</span></div>
-                  <p className={`text-xs font-bold ${currentStatus === 'DELIVERED' ? 'text-primary' : 'text-slate-400'}`}>Hoàn thành</p>
+                  <p className={`text-xs font-bold ${currentStatus === 'DELIVERED' ? 'text-primary' : 'text-slate-400'}`}>{t('orderTracking.completed')}</p>
                 </div>
               </div>
               )}
@@ -225,11 +224,11 @@ const OrderTracking: React.FC = () => {
 
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">Thông tin tóm tắt</h3>
+              <h3 className="font-bold mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">{t('orderTracking.summary')}</h3>
               <div className="space-y-4">
-                <div className="flex justify-between text-sm"><span className="text-slate-500">Ngày đặt hàng</span><span className="font-semibold text-slate-700 dark:text-slate-300">{new Date(orderCreatedAt).toLocaleDateString('vi-VN')}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">{t('orderTracking.orderDate')}</span><span className="font-semibold text-slate-700 dark:text-slate-300">{new Date(orderCreatedAt).toLocaleDateString('vi-VN')}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-slate-500">Thanh toán</span><span className="font-semibold text-slate-700 dark:text-slate-300">{orderPaymentMethod.toUpperCase()}</span></div>
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center"><span className="font-bold">Tổng thanh toán</span><span className="text-xl font-extrabold text-primary">{orderTotal.toLocaleString('vi-VN')}₫</span></div>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center"><span className="font-bold">{t('orderTracking.totalPayment')}</span><span className="text-xl font-extrabold text-primary">{orderTotal.toLocaleString('vi-VN')}₫</span></div>
               </div>
             </div>
 
@@ -250,11 +249,9 @@ const OrderTracking: React.FC = () => {
                 ))}
               </div>
               {orderItems.length === 0 && (
-                <p className="text-sm text-slate-500">Không có dữ liệu chi tiết sản phẩm cho đơn hàng này.</p>
+                <p className="text-sm text-slate-500">{t('orderTracking.noDetails')}</p>
               )}
-              <Link to={`/account/orders/${orderDisplayId}`} className="block text-center w-full mt-6 py-2 text-sm font-semibold text-primary bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors">
-                Xem chi tiết hóa đơn
-              </Link>
+              <Link to={`/account/orders/${orderDisplayId}`} className="block text-center w-full mt-6 py-2 text-sm font-semibold text-primary bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors">{t('orderTracking.viewInvoice')}</Link>
             </div>
           </div>
         </div>
@@ -265,7 +262,7 @@ const OrderTracking: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto"><span className="material-symbols-outlined text-2xl">warning</span></div>
-            <h3 className="text-xl font-bold text-center mb-2">Xác nhận hủy đơn</h3>
+            <h3 className="text-xl font-bold text-center mb-2">{t('orderTracking.confirmCancel')}</h3>
             <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{orderDisplayId} sẽ bị hủy và không thể hoàn tác.</p>
             <div className="mb-4">
               <label className="block text-sm font-bold text-slate-700 mb-1">Lý do hủy đơn <span className="text-red-500">*</span></label>
@@ -284,7 +281,7 @@ const OrderTracking: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4 mx-auto"><span className="material-symbols-outlined text-2xl">support_agent</span></div>
-            <h3 className="text-xl font-bold text-center mb-2">Liên hệ hỗ trợ</h3>
+            <h3 className="text-xl font-bold text-center mb-2">{t('orderDetail.contactSupport')}</h3>
             <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{orderDisplayId} • Trạng thái: {currentStatus}</p>
             <div className="mb-4">
               <label className="block text-sm font-bold text-slate-700 mb-1">Mô tả vấn đề <span className="text-red-500">*</span></label>

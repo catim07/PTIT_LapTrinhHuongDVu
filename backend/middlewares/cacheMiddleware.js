@@ -1,4 +1,5 @@
 import { getCache, setCache } from '../services/redisService.js';
+import { resolveLocale } from '../services/localizationService.js';
 
 export const cacheMiddleware = (ttlSeconds = 60) => {
   return async (req, res, next) => {
@@ -10,7 +11,8 @@ export const cacheMiddleware = (ttlSeconds = 60) => {
     // Skip if user is authenticated (unless it's a global resource)
     // To be safe, we'll cache based on URL. If it needs user-specific, we should add user_id to key.
     const isAuthRequest = req.headers.authorization;
-    const key = `cache:${req.originalUrl || req.url}${isAuthRequest ? `:${req.user?.id || 'auth'}` : ''}`;
+    const locale = resolveLocale(req);
+    const key = `cache:${locale}:${req.originalUrl || req.url}${isAuthRequest ? `:${req.user?.id || 'auth'}` : ''}`;
 
     try {
       const cached = await getCache(key);

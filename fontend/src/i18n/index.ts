@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import vi from './locales/vi.json';
 import en from './locales/en.json';
+import ja from './locales/ja.json';
 
 i18n
   .use(LanguageDetector)
@@ -12,6 +13,7 @@ i18n
     resources: {
       vi: { translation: vi },
       en: { translation: en },
+      ja: { translation: ja },
     },
     fallbackLng: 'vi',
     interpolation: {
@@ -32,7 +34,7 @@ i18n
 export const setDefaultLanguageFromSettings = (lang?: string) => {
   // Only set if user hasn't picked a language yet
   const saved = localStorage.getItem('lotte_language');
-  if (!saved && lang && (lang === 'vi' || lang === 'en')) {
+  if (!saved && lang && (lang === 'vi' || lang === 'en' || lang === 'ja')) {
     i18n.changeLanguage(lang);
   }
 };

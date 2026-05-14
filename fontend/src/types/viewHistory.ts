@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 export interface ViewHistoryTrackPayload {
   product_id?: string | number;
   branch_product_id?: string | number;
@@ -66,7 +68,7 @@ export const normalizeViewHistoryItem = (input: any): ViewHistoryItem | null => 
     id,
     product_id: productId,
     branch_product_id: toSafeString(input.branch_product_id || input.branchProductId || '') || null,
-    product_name: toSafeString(input.product_name || input.productName || input.name || 'San pham'),
+    product_name: toSafeString(input.product_name || input.productName || input.name || i18n.t('common.product')),
     product_image: toSafeString(input.product_image || input.productImage || input.image || '', FALLBACK_IMAGE),
     price: toSafeNumber(input.price, 0),
     original_price: toSafeNumber(input.original_price || input.originalPrice, 0),

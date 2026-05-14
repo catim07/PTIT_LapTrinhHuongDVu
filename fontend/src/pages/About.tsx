@@ -1,296 +1,445 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import aboutHeroImg from "../assets/about-hero.png";
+import aboutStoreImg from "../assets/about-store.png";
+import aboutCtaBgImg from "../assets/about-cta-bg.png";
 
+/* ------------------------------------------------------------------ */
+/*  Animated counter hook — smoothly counts from 0 to `end`           */
+/* ------------------------------------------------------------------ */
+function useCountUp(end: number, duration = 2000) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const startTime = performance.now();
+          const step = (now: number) => {
+            const progress = Math.min((now - startTime) / duration, 1);
+            setValue(Math.floor(progress * end));
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [end, duration]);
+
+  return { value, ref };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Fade-in-on-scroll wrapper                                         */
+/* ------------------------------------------------------------------ */
+const FadeInSection: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({
+  children,
+  className = "",
+  delay = 0,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+/* ================================================================== */
+/*  ABOUT PAGE                                                        */
+/* ================================================================== */
 const About: React.FC = () => {
+  const { t } = useTranslation();
+
+  /* ---------- stat counters ---------- */
+  const stat1 = useCountUp(15, 1800);
+  const stat2 = useCountUp(20000, 2200);
+  const stat3 = useCountUp(14, 1600);
+  const stat4 = useCountUp(5, 1400);
+
+  /* ---------- mission cards ---------- */
+  const missionCards = [
+    { icon: "verified", titleKey: "about.missionQualityTitle", descKey: "about.missionQualityDesc" },
+    { icon: "local_shipping", titleKey: "about.missionConvenienceTitle", descKey: "about.missionConvenienceDesc" },
+    { icon: "smart_toy", titleKey: "about.missionSmartTitle", descKey: "about.missionSmartDesc" },
+  ];
+
+  /* ---------- values ---------- */
+  const values = [
+    { icon: "workspace_premium", titleKey: "about.valueQualityTitle", descKey: "about.valueQualityDesc", color: "text-amber-500" },
+    { icon: "speed", titleKey: "about.valueConvenienceTitle", descKey: "about.valueConvenienceDesc", color: "text-blue-500" },
+    { icon: "handshake", titleKey: "about.valueTrustTitle", descKey: "about.valueTrustDesc", color: "text-emerald-500" },
+    { icon: "support_agent", titleKey: "about.valueServiceTitle", descKey: "about.valueServiceDesc", color: "text-violet-500" },
+    { icon: "eco", titleKey: "about.valueFreshnessTitle", descKey: "about.valueFreshnessDesc", color: "text-green-500" },
+    { icon: "lightbulb", titleKey: "about.valueInnovationTitle", descKey: "about.valueInnovationDesc", color: "text-orange-500" },
+  ];
+
+  /* ---------- why choose us ---------- */
+  const whyCards = [
+    { icon: "category", titleKey: "about.whyCuratedTitle", descKey: "about.whyCuratedDesc" },
+    { icon: "storefront", titleKey: "about.whyBranchTitle", descKey: "about.whyBranchDesc" },
+    { icon: "auto_awesome", titleKey: "about.whySmartTitle", descKey: "about.whySmartDesc" },
+    { icon: "thumb_up", titleKey: "about.whyReliableTitle", descKey: "about.whyReliableDesc" },
+    { icon: "headset_mic", titleKey: "about.whySupportTitle", descKey: "about.whySupportDesc" },
+    { icon: "devices", titleKey: "about.whyModernTitle", descKey: "about.whyModernDesc" },
+  ];
+
   return (
     <>
-      <style>
-        {`
-          .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          }
-          .signature-gradient {
-            background: linear-gradient(135deg, #970012 0%, #c1121f 100%);
-          }
-        `}
-      </style>
+      {/* ====================== HERO ====================== */}
+      <section id="about-hero" className="relative min-h-[520px] md:min-h-[620px] flex items-center justify-center overflow-hidden">
+        {/* Background image */}
+        <img
+          src={aboutHeroImg}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.7))" }} />
 
-      {/* Top Navigation Bar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-20 flex items-center">
-        <div className="flex justify-between items-center max-w-7xl mx-auto px-8 w-full">
-          <div className="font-['Nunito'] text-2xl font-black text-neutral-900 dark:text-neutral-50 tracking-tighter">
-            Lotte Atelier
-          </div>
-          <div className="hidden md:flex items-center space-x-8 font-['Nunito'] text-sm tracking-wide uppercase font-semibold">
-            <a
-              className="text-[#C1121F] border-b-2 border-[#C1121F] pb-1"
-              href="#"
-            >
-              Our Story
-            </a>
-            <a
-              className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              href="#"
-            >
-              Curation
-            </a>
-            <a
-              className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              href="#"
-            >
-              The Archive
-            </a>
-            <a
-              className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              href="#"
-            >
-              Atelier
-            </a>
-            <a
-              className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-              href="#"
-            >
-              Contact
-            </a>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-all duration-300 rounded-full">
-              <span className="material-symbols-outlined text-neutral-900 dark:text-neutral-50">
-                shopping_bag
-              </span>
-            </button>
-          </div>
-        </div>
-      </nav>
+        <div className="relative z-10 text-center px-6 max-w-3xl mx-auto py-20">
+          <FadeInSection>
+            <span className="inline-block px-4 py-1.5 mb-6 rounded-full backdrop-blur-md text-white text-xs font-semibold tracking-widest uppercase" style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)" }}>
+              {t("about.heroBadge")}
+            </span>
+          </FadeInSection>
 
-      <main>
-        {/* Hero Section */}
-        <section className="relative h-[665px] md:h-[768px] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img
-              className="w-full h-full object-cover brightness-75"
-              data-alt="Cinematic high-end grocery boutique with soft warm lighting, artisan products on shelves, and a premium luxury retail atmosphere"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQncEbB5UraU1zRQjZNoHiNDOJZcPYkqIUGks4z99pKlZvuhw15nGi_j2msYRPBWiY8oFlLGGXllxgFJzqmts5qMEopI40SYBsMqVZDI6qNmNPisudO8H7UAftwtP3ECXvBKWFnBvpAqmdAUQedeB3ZAjEs5wBCmcq23uI9QbYQa74EqnHWmfEcOervKuuwAqxcLSvzOxnUimSoQuAi8Onyu2VgKZSF0vA-xscsLk_ff7xjnscoYsMjgENnCvb7Z2H27NQEGmJo0o"
-              alt=""
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface"></div>
-          </div>
-          <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-            <h1 className="font-headline text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 drop-shadow-lg">
-              Our Story
+          <FadeInSection delay={120}>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight mb-5 drop-shadow-lg">
+              {t("about.heroTitle")}
             </h1>
-            <p className="text-white text-lg md:text-xl font-light mb-10 leading-relaxed max-w-2xl mx-auto drop-shadow-md">
-              Crafting a legacy of culinary excellence through curated selection and an uncompromising commitment to quality.
-            </p>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <button className="px-8 py-3 signature-gradient text-white rounded-full font-semibold shadow-xl scale-100 hover:scale-105 active:scale-95 transition-all">
-                Explore More
-              </button>
-              <button className="px-8 py-3 bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-semibold hover:bg-white/30 transition-all">
-                Contact Us
-              </button>
-            </div>
-          </div>
-        </section>
+          </FadeInSection>
 
-        {/* Our Story Content */}
-        <section className="py-24 px-6 bg-surface">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-16 items-center">
-              <div className="space-y-8">
-                <div>
-                  <span className="text-primary font-bold tracking-widest uppercase text-xs mb-4 block">
-                    The Heritage
-                  </span>
-                  <h2 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface leading-tight">
-                    A Journey of Taste and Precision
-                  </h2>
-                </div>
-                <p className="text-on-surface-variant text-lg leading-relaxed">
-                  Founded on the principle that food is more than sustenance—it's an art form. Lotte Atelier began as a small curation house focused on sourcing the rarest ingredients from local artisans and global pioneers.
+          <FadeInSection delay={240}>
+            <p className="text-base sm:text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto mb-10 drop-shadow" style={{ color: "rgba(255,255,255,0.9)" }}>
+              {t("about.heroSubtitle")}
+            </p>
+          </FadeInSection>
+
+          <FadeInSection delay={360}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/products"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#E60012] hover:bg-[#c9000f] text-white rounded-full font-semibold shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-xl">shopping_bag</span>
+                {t("about.shopNow")}
+              </Link>
+              <Link
+                to="/products"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 backdrop-blur-md text-white rounded-full font-semibold transition-all duration-300 hover:opacity-90"
+                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }}
+              >
+                <span className="material-symbols-outlined text-xl">explore</span>
+                {t("about.exploreProducts")}
+              </Link>
+            </div>
+          </FadeInSection>
+        </div>
+      </section>
+
+      {/* ==================== OUR STORY ==================== */}
+      <section id="about-story" className="py-20 md:py-28 px-6 bg-white dark:bg-neutral-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Text */}
+            <FadeInSection>
+              <div className="space-y-6">
+                <span className="text-[#E60012] font-bold tracking-widest uppercase text-xs">
+                  {t("about.storyLabel")}
+                </span>
+                <h2 className="text-3xl md:text-4xl lg:text-[2.75rem] font-extrabold text-neutral-900 dark:text-white leading-tight">
+                  {t("about.storyTitle")}
+                </h2>
+                <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg leading-relaxed">
+                  {t("about.storyDesc1")}
                 </p>
-                <p className="text-on-surface-variant text-lg leading-relaxed">
-                  Today, we stand as a beacon of luxury retail, where every product on our shelf tells a story of origin, craftsmanship, and the pursuit of perfection. Our mission is to bridge the gap between the producer's passion and the connoisseur's table.
+                <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg leading-relaxed">
+                  {t("about.storyDesc2")}
                 </p>
               </div>
+            </FadeInSection>
+
+            {/* Image */}
+            <FadeInSection delay={200}>
               <div className="relative group">
-                <div className="absolute -inset-4 bg-primary/5 rounded-xl transition-transform group-hover:scale-105"></div>
+                <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-[#E60012]/10 to-[#FFD400]/10 blur-sm group-hover:blur-md transition-all duration-500" />
                 <img
-                  className="relative rounded-xl shadow-2xl w-full aspect-[4/3] object-cover"
-                  data-alt="Artisanal food preparation with fresh organic vegetables and high-end kitchen tools on a clean marble surface"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZEHsoq-ILQdHcp8kWw5tLi-rsftKNVuierP_M9JbL98U3jyRGfp4xbmFaIz0hseMNxyw7kzLHM9DigxID7AhQMDMbKOCYr1f1tyVE9vRPn9C3tmyVww1EayCjSxNdeQPoE1ddX7z7trsp9ogvhx_s5u9i5E0geefwzDFc1yVEuYAh9aGmecuHZqE0Hxkx5B-QCCDLC_z7dyC_pI44P3RUxvzk2XzThb0ImJfAX4XQH1nVfKR7HaJtGx-j3lLhCb8w_HFupeGgz1g"
-                  alt=""
+                  src={aboutStoreImg}
+                  alt="Lotte Mart store"
+                  className="relative rounded-2xl shadow-2xl w-full aspect-[4/3] object-cover ring-1 ring-black/5"
                 />
               </div>
-            </div>
+            </FadeInSection>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Our Mission */}
-        <section className="py-24 px-6 bg-surface-container-low">
-          <div className="max-w-7xl mx-auto text-center mb-16">
-            <h2 className="font-headline text-4xl font-extrabold text-on-surface mb-4">
-              Our Mission
-            </h2>
-            <p className="text-on-surface-variant max-w-xl mx-auto">
-              Elevating the everyday shopping experience into a curated journey of discovery.
-            </p>
-          </div>
-          <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-            {/* Mission Card 1 */}
-            <div className="bg-surface-container-lowest p-10 rounded-xl shadow-sm hover:shadow-md transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center mb-6 text-primary group-hover:signature-gradient group-hover:text-white transition-all">
-                <span className="material-symbols-outlined text-3xl">verified</span>
-              </div>
-              <h3 className="text-xl font-bold mb-3">Purity &amp; Origin</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                We trace every product back to its source, ensuring ethical practices and absolute freshness from farm to atelier.
-              </p>
-            </div>
-
-            {/* Mission Card 2 */}
-            <div className="bg-surface-container-lowest p-10 rounded-xl shadow-sm hover:shadow-md transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center mb-6 text-primary group-hover:signature-gradient group-hover:text-white transition-all">
-                <span className="material-symbols-outlined text-3xl">eco</span>
-              </div>
-              <h3 className="text-xl font-bold mb-3">Sustainable Luxury</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                Luxury shouldn't cost the earth. Our operations are designed with a carbon-neutral footprint in mind.
-              </p>
-            </div>
-
-            {/* Mission Card 3 */}
-            <div className="bg-surface-container-lowest p-10 rounded-xl shadow-sm hover:shadow-md transition-shadow group">
-              <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center mb-6 text-primary group-hover:signature-gradient group-hover:text-white transition-all">
-                <span className="material-symbols-outlined text-3xl">star</span>
-              </div>
-              <h3 className="text-xl font-bold mb-3">Exceptional Service</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                A concierge-level approach to grocery shopping, providing personalized recommendations for your lifestyle.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section className="py-20 bg-surface">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center p-8 bg-surface-container-low rounded-xl">
-                <div className="text-4xl md:text-5xl font-black text-primary mb-2">15+</div>
-                <div className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Years of Heritage
-                </div>
-              </div>
-              <div className="text-center p-8 bg-surface-container-low rounded-xl">
-                <div className="text-4xl md:text-5xl font-black text-primary mb-2">850+</div>
-                <div className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Artisan Partners
-                </div>
-              </div>
-              <div className="text-center p-8 bg-surface-container-low rounded-xl">
-                <div className="text-4xl md:text-5xl font-black text-primary mb-2">12</div>
-                <div className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Global Awards
-                </div>
-              </div>
-              <div className="text-center p-8 bg-surface-container-low rounded-xl">
-                <div className="text-4xl md:text-5xl font-black text-primary mb-2">50k+</div>
-                <div className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Happy Clients
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Values Section */}
-        <section className="py-24 px-6 bg-surface-container-low">
-          <div className="max-w-7xl mx-auto">
+      {/* ==================== OUR MISSION ==================== */}
+      <section id="about-mission" className="py-20 md:py-28 px-6 bg-neutral-50 dark:bg-neutral-900">
+        <div className="max-w-7xl mx-auto">
+          <FadeInSection>
             <div className="text-center mb-16">
-              <h2 className="font-headline text-4xl font-extrabold text-on-surface mb-4">
-                Our Core Values
+              <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 dark:text-white mb-4">
+                {t("about.missionTitle")}
               </h2>
-              <p className="text-on-surface-variant">The pillars that define the Lotte Atelier experience.</p>
+              <p className="text-neutral-500 dark:text-neutral-400 max-w-xl mx-auto text-base md:text-lg">
+                {t("about.missionSubtitle")}
+              </p>
             </div>
-            <div className="grid md:grid-cols-3 gap-12">
-              {/* Value 1 */}
-              <div className="flex flex-col items-center text-center p-8 bg-surface-container-lowest rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-                <div className="w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-primary/10">
-                  <img
-                    className="w-full h-full object-cover"
-                    data-alt="Portrait of a professional artisan producer with a warm and welcoming expression"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHtG1KlNL8R3NtNUiUlvFa5xqOJ-dPkm_RgFLW1eHXWMEb7LgrDNiD-XoOpLxn3a2OJmWrRLFZkrs3dolrYEB27tEqMEpJY3nA0OZjDQnalDV60hP6aGSxOgK5zH5fbOYDW8WfoWf_faj80Q7h8oLZSXx1sNhokokeVSih9zt8T9QNH8jOj2a-cDaiUQ-LxfJw4QTgXXrTQ3yXd5A6WtSyXGXOsBrp3tLsh68rxog2CNF0dAv4-8RVnPJkUrhCAFjsay4bnuDnGbE"
-                    alt=""
-                  />
-                </div>
-                <h4 className="text-lg font-bold mb-2">Authenticity</h4>
-                <p className="text-on-surface-variant text-sm">
-                  We value the real, the raw, and the honest. No compromises on true flavor.
-                </p>
-              </div>
+          </FadeInSection>
 
-              {/* Value 2 */}
-              <div className="flex flex-col items-center text-center p-8 bg-surface-container-lowest rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-                <div className="w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-primary/10">
-                  <img
-                    className="w-full h-full object-cover"
-                    data-alt="Close up portrait of a smiling woman represent honesty and community service"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMxenFc5PXrj7dkt61UnVZgghnK8TZtZtEE4iU28w5N7SuTD43FF6TWPEv7tpzIfNSjj0BnUyWzPBEMit86v66buWtnKfU_N4xwfUKr-U7PI-HCixxqXpzQoNHulqpPapT8b4ueONuSDxuKzV7237Flv083HCHNwn7D2pmVdA-zgz8u2QvvxIFTfzY3LL0wKV9sMUghv6XYne8j-iBpsLeURelQ2gMzIS52hNhTea6ShDgjTKHn6pid3VVKU9vqf4erHLcqS4NMfA"
-                    alt=""
-                  />
+          <div className="grid md:grid-cols-3 gap-8">
+            {missionCards.map((card, i) => (
+              <FadeInSection key={card.titleKey} delay={i * 150}>
+                <div className="bg-white dark:bg-neutral-800 p-8 md:p-10 rounded-2xl shadow-sm hover:shadow-lg border border-neutral-100 dark:border-neutral-700 transition-all duration-300 group h-full">
+                  <div className="w-14 h-14 rounded-xl bg-[#E60012]/10 flex items-center justify-center mb-6 group-hover:bg-[#E60012] transition-colors duration-300">
+                    <span className="material-symbols-outlined text-3xl text-[#E60012] group-hover:text-white transition-colors duration-300">
+                      {card.icon}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
+                    {t(card.titleKey)}
+                  </h3>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
+                    {t(card.descKey)}
+                  </p>
                 </div>
-                <h4 className="text-lg font-bold mb-2">Community</h4>
-                <p className="text-on-surface-variant text-sm">
-                  Supporting the local ecosystems that provide us with nature's bounty.
-                </p>
-              </div>
-
-              {/* Value 3 */}
-              <div className="flex flex-col items-center text-center p-8 bg-surface-container-lowest rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-                <div className="w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-primary/10">
-                  <img
-                    className="w-full h-full object-cover"
-                    data-alt="Portrait of a confident expert curator for luxury grocery brand"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJfGXpApYt1PdcRgT1qA9vD6PZ3psylYTej0ig9-pak-p0q1v7nBGnwXOjlW8i-fkVjk5bDuh0wpz0pOWKufo2hW7zmvG1OUAGzwLGG5NBbB4T-Jab-Kp3VeDf2K-qTAulaAnDSFjNYw6tBbrzMSiO79Ip443rZx2TFB4nTCLRrdtvJr6e8kHebnOqnFxeFft5M6XYU3uhuLnakxgKfHR2MybLEhKafR-S8mbpLacpL0RIziawYrrKAEbFRCccariNkZf-oHEOPfY"
-                    alt=""
-                  />
-                </div>
-                <h4 className="text-lg font-bold mb-2">Excellence</h4>
-                <p className="text-on-surface-variant text-sm">
-                  A relentless pursuit of the highest quality standards in every category.
-                </p>
-              </div>
-            </div>
+              </FadeInSection>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Final CTA Banner */}
-        <section className="py-20 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="relative rounded-xl overflow-hidden p-12 md:p-20 text-center">
+      {/* ==================== KEY METRICS ==================== */}
+      <section
+        id="about-metrics"
+        className="py-20 md:py-24 px-6 relative overflow-hidden"
+        style={{ background: "linear-gradient(to bottom right, #E60012, #B8000F)" }}
+      >
+        {/* Decorative circles */}
+        <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }} />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }} />
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <FadeInSection>
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-3">
+                {t("about.metricsTitle")}
+              </h2>
+              <p className="text-base md:text-lg max-w-lg mx-auto" style={{ color: "rgba(255,255,255,0.8)" }}>
+                {t("about.metricsSubtitle")}
+              </p>
+            </div>
+          </FadeInSection>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {/* Stat 1: Years */}
+            <FadeInSection delay={0}>
+              <div
+                ref={stat1.ref}
+                className="text-center p-6 md:p-8 rounded-2xl backdrop-blur-sm"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div className="text-4xl md:text-5xl font-black text-white mb-2">{stat1.value}+</div>
+                <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {t("about.statYears")}
+                </div>
+              </div>
+            </FadeInSection>
+
+            {/* Stat 2: Products */}
+            <FadeInSection delay={100}>
+              <div
+                ref={stat2.ref}
+                className="text-center p-6 md:p-8 rounded-2xl backdrop-blur-sm"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div className="text-4xl md:text-5xl font-black text-white mb-2">{stat2.value >= 20000 ? "20K+" : `${(stat2.value / 1000).toFixed(1)}K`}</div>
+                <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {t("about.statProducts")}
+                </div>
+              </div>
+            </FadeInSection>
+
+            {/* Stat 3: Branches */}
+            <FadeInSection delay={200}>
+              <div
+                ref={stat3.ref}
+                className="text-center p-6 md:p-8 rounded-2xl backdrop-blur-sm"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div className="text-4xl md:text-5xl font-black text-white mb-2">{stat3.value}+</div>
+                <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {t("about.statBranches")}
+                </div>
+              </div>
+            </FadeInSection>
+
+            {/* Stat 4: Customers */}
+            <FadeInSection delay={300}>
+              <div
+                ref={stat4.ref}
+                className="text-center p-6 md:p-8 rounded-2xl backdrop-blur-sm"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div className="text-4xl md:text-5xl font-black text-white mb-2">{stat4.value}M+</div>
+                <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {t("about.statCustomers")}
+                </div>
+              </div>
+            </FadeInSection>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== OUR VALUES ==================== */}
+      <section id="about-values" className="py-20 md:py-28 px-6 bg-white dark:bg-neutral-950">
+        <div className="max-w-7xl mx-auto">
+          <FadeInSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 dark:text-white mb-4">
+                {t("about.valuesTitle")}
+              </h2>
+              <p className="text-neutral-500 dark:text-neutral-400 max-w-xl mx-auto">
+                {t("about.valuesSubtitle")}
+              </p>
+            </div>
+          </FadeInSection>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {values.map((v, i) => (
+              <FadeInSection key={v.titleKey} delay={i * 100}>
+                <div className="flex items-start gap-5 p-6 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-700/50 hover:border-neutral-200 dark:hover:border-neutral-600 transition-all duration-300 h-full">
+                  <div className={`w-12 h-12 rounded-xl bg-white dark:bg-neutral-700 shadow-sm flex items-center justify-center shrink-0 ${v.color}`}>
+                    <span className="material-symbols-outlined text-2xl">{v.icon}</span>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-neutral-900 dark:text-white mb-1.5">
+                      {t(v.titleKey)}
+                    </h4>
+                    <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
+                      {t(v.descKey)}
+                    </p>
+                  </div>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== WHY CHOOSE US ==================== */}
+      <section id="about-why" className="py-20 md:py-28 px-6 bg-neutral-50 dark:bg-neutral-900">
+        <div className="max-w-7xl mx-auto">
+          <FadeInSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 dark:text-white mb-4">
+                {t("about.whyTitle")}
+              </h2>
+              <p className="text-neutral-500 dark:text-neutral-400 max-w-xl mx-auto">
+                {t("about.whySubtitle")}
+              </p>
+            </div>
+          </FadeInSection>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {whyCards.map((card, i) => (
+              <FadeInSection key={card.titleKey} delay={i * 100}>
+                <div className="bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-sm hover:shadow-md border border-neutral-100 dark:border-neutral-700 transition-all duration-300 text-center h-full group">
+                  <div className="w-16 h-16 rounded-2xl bg-[#E60012]/5 dark:bg-[#E60012]/10 flex items-center justify-center mx-auto mb-5 group-hover:bg-[#E60012]/10 dark:group-hover:bg-[#E60012]/20 transition-colors">
+                    <span className="material-symbols-outlined text-3xl text-[#E60012]">
+                      {card.icon}
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">
+                    {t(card.titleKey)}
+                  </h4>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
+                    {t(card.descKey)}
+                  </p>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ====================== CTA ====================== */}
+      <section id="about-cta" className="py-20 px-6 bg-white dark:bg-neutral-950">
+        <div className="max-w-7xl mx-auto">
+          <FadeInSection>
+            <div className="relative rounded-3xl overflow-hidden">
               <img
-                className="absolute inset-0 w-full h-full object-cover brightness-50"
-                data-alt="Close up of high quality gourmet food ingredients in a professional kitchen setting with soft atmosphere"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCknneYHIegAz3zlS1mc4CvCzTR3tF_dHWEhRbT-lwL84hFSYqOarPj_VREsBVpoq70eot2avO-bid8DYW_tL1l9p7KnyGqmS2rZRgCQM5ToomlDmhkc-DpiopObrrMxhTdBsSFjMO8FCq4WVS6QgxQUDTxriqn6fS3tWD8wMlULjcCZem0bYOEl0JabdeKZ30LDBG9ESfujgnTVJk1ZyrAHxaaV5_3-KmicV7LifFS7svm7zLgwLDzh_ekYlsWmWHPn6UqtHaSM-s"
+                src={aboutCtaBgImg}
                 alt=""
+                className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="relative z-10 max-w-2xl mx-auto">
-                <h2 className="font-headline text-3xl md:text-5xl font-black text-white mb-6">
-                  Ready to Experience the Atelier?
+              <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.5))" }} />
+
+              <div className="relative z-10 py-16 md:py-24 px-8 md:px-16 text-center md:text-left max-w-2xl">
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-5">
+                  {t("about.ctaTitle")}
                 </h2>
-                <p className="text-white/90 text-lg mb-10 leading-relaxed">
-                  Join our exclusive circle of food enthusiasts and discover curated excellence today.
+                <p className="text-base md:text-lg leading-relaxed mb-10" style={{ color: "rgba(255,255,255,0.85)" }}>
+                  {t("about.ctaDesc")}
                 </p>
-                <button className="px-10 py-4 signature-gradient text-white rounded-full font-bold shadow-2xl hover:shadow-primary/20 transition-all scale-100 hover:scale-105">
-                  Get Started
-                </button>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <Link
+                    to="/products"
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#E60012] hover:bg-[#c9000f] text-white rounded-full font-bold shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-xl">shopping_cart</span>
+                    {t("about.shopNow")}
+                  </Link>
+                  <Link
+                    to="/promotions"
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 backdrop-blur-md text-white rounded-full font-semibold transition-all duration-300 hover:opacity-90"
+                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }}
+                  >
+                    <span className="material-symbols-outlined text-xl">local_offer</span>
+                    {t("about.viewPromotions")}
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
-
-      
+          </FadeInSection>
+        </div>
+      </section>
     </>
   );
 };

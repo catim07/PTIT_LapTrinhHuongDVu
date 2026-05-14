@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { dataService } from '../../services/dataService';
 
 function Footer() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
     dataService.getAdminSettings().then(setSettings).catch(() => {});
   }, []);
 
-  const phone = settings?.support_phone || "1800 599 907 (miễn phí)";
+  const phone = settings?.support_phone || "1800 599 907";
   const email = settings?.support_email || "cskh@lottemart.vn";
   const brand = settings?.brand_name || "LOTTE Mart";
 
@@ -32,7 +35,7 @@ function Footer() {
               <span style={{ color: "#C1121F", fontWeight: 700, fontSize: 14, borderLeft: "2px solid #C1121F", paddingLeft: 6 }}>Mart</span>
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.8, color: "#999", marginBottom: 20 }}>
-              {brand} Việt Nam – Chuỗi siêu thị hiện đại hàng đầu Hàn Quốc tại Việt Nam. Mang đến trải nghiệm mua sắm đẳng cấp với hàng ngàn sản phẩm chất lượng cao.
+              {t('footer.description', { brand })}
             </p>
             <div style={{ display: "flex", gap: 12 }}>
               {["📘", "📸", "▶️", "🐦"].map((icon, i) => (
@@ -57,9 +60,25 @@ function Footer() {
           </div>
 
           {[
-            { title: "Hỗ trợ khách hàng", items: ["Hướng dẫn mua hàng", "Chính sách đổi trả", "Chính sách vận chuyển", "Câu hỏi thường gặp"] },
-            { title: "Về LOTTE Mart", items: ["Giới thiệu", "Tuyển dụng", "Tin tức & Sự kiện", "Quan hệ đối tác"] },
-            { title: "Liên hệ", items: [`📞 ${phone}`, `✉️ ${email}`, "📍 Hà Nội & TP.HCM", "🕐 8:00 - 22:00 hàng ngày"] },
+            { title: t('footer.customerSupport'), items: [
+              { label: t('footer.supportCenter'), to: '/account/support' },
+              { label: t('footer.shoppingGuide') },
+              { label: t('footer.returnPolicy') },
+              { label: t('footer.shippingPolicy') },
+              { label: t('footer.faq') },
+            ] },
+            { title: t('footer.aboutLotte'), items: [
+              { label: t('footer.introduction') },
+              { label: t('footer.careers') },
+              { label: t('footer.newsEvents') },
+              { label: t('footer.partnership') },
+            ] },
+            { title: t('footer.contact'), items: [
+              { label: `📞 ${phone} (${t('footer.phoneFree')})` },
+              { label: `✉️ ${email}` },
+              { label: `📍 ${t('footer.location')}` },
+              { label: `🕐 ${t('footer.workingHours')}` },
+            ] },
           ].map((col) => (
             <div key={col.title}>
               <h4
@@ -75,9 +94,15 @@ function Footer() {
                 {col.title}
               </h4>
               {col.items.map((item) => (
-                <div key={item} style={{ fontSize: 13, color: "#999", marginBottom: 10, cursor: "pointer" }}>
-                  {item}
-                </div>
+                item.to ? (
+                  <Link key={item.label} to={item.to} style={{ display: 'block', fontSize: 13, color: '#999', marginBottom: 10, textDecoration: 'none' }}>
+                    {item.label}
+                  </Link>
+                ) : (
+                  <div key={item.label} style={{ fontSize: 13, color: "#999", marginBottom: 10, cursor: "pointer" }}>
+                    {item.label}
+                  </div>
+                )
               ))}
             </div>
           ))}
@@ -94,7 +119,7 @@ function Footer() {
             color: "#666",
           }}
         >
-          <span>© 2024 LOTTE Mart Vietnam. Tất cả quyền được bảo lưu.</span>
+          <span>{t('footer.copyright')}</span>
           <div style={{ display: "flex", gap: 8 }}>
             {["VISA", "MC", "ATM", "ZaloPay", "MoMo"].map((method) => (
               <span key={method} style={{ background: "#333", padding: "4px 8px", borderRadius: 4, fontSize: 11 }}>

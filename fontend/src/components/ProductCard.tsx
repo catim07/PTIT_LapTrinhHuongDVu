@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { NormalizedShopProduct } from '../types/product';
 
 interface ProductCardProps {
@@ -30,9 +31,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
   onToggleWishlist,
 }) => {
+  const { t } = useTranslation();
   if (loading) return <ProductCardSkeleton />;
 
-  const safeName = product.name || 'San pham';
+  const safeName = product.name || t('common.product');
   const safePrice = Number(product.price) || 0;
   const safeOriginal = Number(product.original_price) || 0;
   const safeDiscount = Number(product.discount_percent) || 0;
@@ -54,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
         {isOutOfStock && (
           <span className="rounded bg-slate-700 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-            Het hang
+            {t('common.outOfStock')}
           </span>
         )}
       </div>
@@ -83,13 +85,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       <div className="flex flex-1 flex-col pt-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 line-clamp-1">{product.categoryShop || 'Khac'}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 line-clamp-1">{product.categoryShop || t('common.other')}</p>
         <h3 className="mt-1 min-h-10 text-sm font-semibold leading-5 text-slate-900 line-clamp-2">{safeName}</h3>
 
         <div className="mt-2 flex items-center gap-1 text-xs text-amber-500">
           <span className="material-symbols-outlined text-[14px]">star</span>
           <span className="font-semibold text-slate-700">{safeRating.toFixed(1)}</span>
-          <span className="ml-1 text-slate-500">Ton: {safeStock}</span>
+          <span className="ml-1 text-slate-500">{t('common.stock')}: {safeStock}</span>
         </div>
 
         <div className="mt-3 flex items-end gap-2">
@@ -108,7 +110,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           }}
           className="mt-auto rounded-xl bg-primary px-3 py-2 text-sm font-bold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isOutOfStock ? 'Het hang' : 'Them vao gio'}
+          {isOutOfStock ? t('common.outOfStock') : t('common.addToCart')}
         </button>
       </div>
     </article>

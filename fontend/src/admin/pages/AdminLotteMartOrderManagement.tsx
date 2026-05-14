@@ -601,7 +601,7 @@ const AdminLotteMartOrderManagement: React.FC = () => {
               {/* Items List */}
               <div className="space-y-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danh sách sản phẩm ({selectedOrder.items?.length})</p>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
                   {selectedOrder.items?.map((item: any, idx: number) => {
                      const isGift = item.is_gift || false;
                      const finalPrice = item.final_price ?? item.price ?? 0;

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { logout } from '../../slices/authSlice';
 import { loadNotifications } from '../../slices/notificationSlice';
 import { selectCurrentBranchItems } from '../../slices/cartSlice';
 
 const HeaderProfile: React.FC = () => {
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
   const { data: notifications } = useAppSelector(state => state.notification);
   const { currentBranch } = useAppSelector(state => state.branch);
@@ -58,13 +60,13 @@ const HeaderProfile: React.FC = () => {
           to={`/login?redirect=${currentPath}`}
           className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all border border-white/20"
         >
-          Đăng nhập
+          {t('userMenu.login')}
         </Link>
         <Link 
           to={`/register?redirect=${currentPath}`}
           className="bg-[#FFD60A] hover:bg-[#FFC300] text-[#1a1a1a] px-4 py-2 rounded-lg text-sm font-bold transition-all"
         >
-          Đăng ký
+          {t('userMenu.register')}
         </Link>
       </div>
     );
@@ -77,7 +79,7 @@ const HeaderProfile: React.FC = () => {
         {/* Notifications */}
         <Link 
           to="/account/notifications" 
-          aria-label={`${unreadNotifs} thông báo mới`}
+          aria-label={`${unreadNotifs} ${t('userMenu.notifications')}`}
           className="size-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white relative transition-all group"
         >
           <span className="material-symbols-outlined text-[24px]">notifications</span>
@@ -92,7 +94,7 @@ const HeaderProfile: React.FC = () => {
         {/* Cart */}
         <Link 
           to="/cart" 
-          aria-label={`${cartCount} sản phẩm trong giỏ hàng`}
+          aria-label={`${cartCount} ${t('userMenu.cartItems')}`}
           className="size-10 flex items-center justify-center rounded-xl bg-[#FFD60A] hover:bg-[#FFC300] text-[#C1121F] relative transition-all group shadow-lg shadow-black/10"
         >
           <span className="material-symbols-outlined text-[24px]">shopping_cart</span>
@@ -132,7 +134,7 @@ const HeaderProfile: React.FC = () => {
             </div>
             <div className="text-[11px] text-white/70 font-bold mt-0.5 flex items-center gap-1">
               <span className="material-symbols-outlined text-[12px] text-[#FFD60A]">military_tech</span>
-              {(user.lotte_points || 0).toLocaleString()} điểm
+              {(user.lotte_points || 0).toLocaleString()} {t('userMenu.points')}
             </div>
           </div>
           
@@ -143,7 +145,7 @@ const HeaderProfile: React.FC = () => {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 py-2 z-[200] animate-in fade-in zoom-in duration-200 origin-top-right">
+          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 py-2 z-[200] animate-in fade-in zoom-in duration-200 origin-top-right max-h-[80vh] overflow-y-auto">
             {/* User Quick Info (Mobile shows this more prominently) */}
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 lg:hidden">
               <p className="font-black text-slate-900 dark:text-white">{user.full_name || user.username}</p>
@@ -152,7 +154,7 @@ const HeaderProfile: React.FC = () => {
                 <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full border border-primary/20">
                   {user.membership_level}
                 </span>
-                <span className="text-[10px] text-slate-500 font-bold">{(user.lotte_points || 0).toLocaleString()} điểm</span>
+                <span className="text-[10px] text-slate-500 font-bold">{(user.lotte_points || 0).toLocaleString()} {t('userMenu.points')}</span>
               </div>
             </div>
 
@@ -164,7 +166,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">person</span>
-                <span className="text-sm font-bold">Xem hồ sơ</span>
+                <span className="text-sm font-bold">{t('userMenu.viewProfile')}</span>
               </Link>
               
               <Link
@@ -174,7 +176,17 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">shopping_bag</span>
-                <span className="text-sm font-bold">Đơn hàng của tôi</span>
+                <span className="text-sm font-bold">{t('userMenu.myOrders')}</span>
+              </Link>
+
+              <Link
+                to="/account/support"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+                role="menuitem"
+              >
+                <span className="material-symbols-outlined text-[20px] text-primary">support_agent</span>
+                <span className="text-sm font-bold">{t('userMenu.support')}</span>
               </Link>
               
               <Link
@@ -184,7 +196,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px]">family_restroom</span>
-                <span className="text-sm font-bold">Giỏ hàng gia đình</span>
+                <span className="text-sm font-bold">{t('userMenu.familyCart')}</span>
               </Link>
 
               <Link
@@ -194,7 +206,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px]">notifications_active</span>
-                <span className="text-sm font-bold">Theo dõi giá</span>
+                <span className="text-sm font-bold">{t('userMenu.priceWatch')}</span>
               </Link>
 
               <Link
@@ -204,7 +216,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">assignment_return</span>
-                <span className="text-sm font-bold">Đổi trả / Hoàn tiền</span>
+                <span className="text-sm font-bold">{t('userMenu.returns')}</span>
               </Link>
 
               <Link
@@ -214,7 +226,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">favorite</span>
-                <span className="text-sm font-bold">Sản phẩm yêu thích</span>
+                <span className="text-sm font-bold">{t('userMenu.wishlist')}</span>
               </Link>
 
               <Link
@@ -224,7 +236,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">history</span>
-                <span className="text-sm font-bold">Lịch sử đã xem</span>
+                <span className="text-sm font-bold">{t('userMenu.viewedHistory')}</span>
               </Link>
               
               <Link
@@ -234,7 +246,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">location_on</span>
-                <span className="text-sm font-bold">Địa chỉ</span>
+                <span className="text-sm font-bold">{t('userMenu.addresses')}</span>
               </Link>
               
               <Link
@@ -244,7 +256,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">sell</span>
-                <span className="text-sm font-bold">Mã giảm giá</span>
+                <span className="text-sm font-bold">{t('userMenu.coupons')}</span>
               </Link>
               
               <Link
@@ -254,7 +266,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px] text-primary">settings</span>
-                <span className="text-sm font-bold">Cài đặt</span>
+                <span className="text-sm font-bold">{t('userMenu.settings')}</span>
               </Link>
             </nav>
 
@@ -265,7 +277,7 @@ const HeaderProfile: React.FC = () => {
                 role="menuitem"
               >
                 <span className="material-symbols-outlined text-[20px]">logout</span>
-                <span className="text-sm font-bold">Đăng xuất</span>
+                <span className="text-sm font-bold">{t('userMenu.logout')}</span>
               </button>
             </div>
           </div>

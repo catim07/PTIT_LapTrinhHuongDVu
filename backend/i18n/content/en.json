@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "product": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Thịt Bò Mỹ": {
+          "name": "US Beef",
+          "short_description": "US Beef description"
+        },
+        "Cá Hồi Na Uy": {
+          "name": "Norwegian Salmon",
+          "short_description": "Norwegian Salmon description"
+        },
+        "Nước mắm Nam Ngư": {
+          "name": "Nam Ngu Fish Sauce",
+          "short_description": "Nam Ngu Fish Sauce description"
+        },
+        "Sữa tươi Vinamilk": {
+          "name": "Vinamilk Fresh Milk",
+          "short_description": "Vinamilk Fresh Milk description"
+        },
+        "Bia Heineken": {
+          "name": "Heineken Beer",
+          "short_description": "Heineken Beer description"
+        },
+        "Mì Hảo Hảo": {
+          "name": "Hao Hao Noodles",
+          "short_description": "Hao Hao Noodles description"
+        },
+        "Coca Cola": {
+          "name": "Coca Cola",
+          "short_description": "Coca Cola description"
+        },
+        "Gạo ST25": {
+          "name": "ST25 Rice",
+          "short_description": "ST25 Rice description"
+        },
+        "Cà chua Đà Lạt": {
+          "name": "Da Lat Tomatoes",
+          "short_description": "Da Lat Tomatoes description"
+        },
+        "Thịt Heo CP": {
+          "name": "CP Pork",
+          "short_description": "CP Pork description"
+        }
+      }
+    },
+    "category": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Thịt, Cá, Hải Sản": {
+          "name": "Meat, Fish, Seafood"
+        },
+        "Rau Củ Quả": {
+          "name": "Vegetables & Fruits"
+        },
+        "Thực phẩm đóng hộp": {
+          "name": "Canned Food"
+        },
+        "Sữa và Các sản phẩm từ sữa": {
+          "name": "Milk & Dairy"
+        },
+        "Gia Vị, Nước Chấm": {
+          "name": "Spices & Sauces"
+        },
+        "Bánh Kẹo, Snack": {
+          "name": "Snacks & Sweets"
+        },
+        "Đồ Uống": {
+          "name": "Beverages"
+        },
+        "Đồ Dùng Gia Đình": {
+          "name": "Household Items"
+        },
+        "Mì, Miến, Cháo, Phở": {
+          "name": "Noodles & Porridge"
+        },
+        "Thực phẩm chay": {
+          "name": "Vegetarian Food"
+        },
+        "Gạo, Bột, Đồ khô": {
+          "name": "Rice & Dry Food"
+        },
+        "Chăm sóc cá nhân": {
+          "name": "Personal Care"
+        }
+      }
+    },
+    "banner": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "hotDeal": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "featuredCollection": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "promotion": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "coupon": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "event": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "notification": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "branch": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "membershipTier": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Đồng": {
+          "level": "Bronze"
+        },
+        "Bạc": {
+          "level": "Silver"
+        },
+        "Vàng": {
+          "level": "Gold"
+        },
+        "Kim Cương": {
+          "level": "Diamond"
+        }
+      }
+    }
+  },
+  "status": {
+    "order": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PROCESSING": "Processing",
+      "SHIPPING": "Shipping",
+      "DELIVERED": "Delivered",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "RETURNED": "Returned",
+      "REFUNDED": "Refunded"
+    },
+    "promotion": {
+      "draft": "Draft",
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "expired": "Expired",
+      "paused": "Paused"
+    },
+    "coupon": {
+      "draft": "Draft",
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "expired": "Expired",
+      "paused": "Paused"
+    }
+  },
+  "labels": {
+    "badges": {
+      "Hết hạn": "Expired",
+      "Sắp hết hạn": "Expiring soon",
+      "Tồn thấp": "Low stock",
+      "Tồn kho thấp": "Low stock",
+      "Nhập mới": "New arrival",
+      "Best seller": "Best seller",
+      "Nổi bật": "Featured",
+      "expiryIn": "Expires in {{days}} days",
+      "remainingIn": "{{days}} days left"
+    }
+  },
+  "messages": {}
+}

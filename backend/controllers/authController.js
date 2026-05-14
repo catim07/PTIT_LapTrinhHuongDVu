@@ -176,7 +176,7 @@ const hydrateUserAuthPayload = async (user) => {
   user.permissions = await getPermissionsForUser(user);
   const token = generateToken(user);
   const refreshToken = generateRefreshToken(user);
-  
+
   await RefreshToken.create({ token: refreshToken, user_id: user._id });
   user.last_login_at = new Date();
   await user.save();
@@ -204,19 +204,25 @@ const upsertFacebookUser = async ({ facebookId, email, name, avatar }) => {
       permissions: [],
       signup_method: 'facebook',
       login_provider: 'facebook',
+      authProviders: ['facebook'],
       email_verified: Boolean(normalizedEmail),
       social_providers: [{ provider: 'facebook', provider_user_id: String(facebookId || '') }],
     });
   } else {
     user.facebookId = user.facebookId || String(facebookId || '');
     user.facebook_id = user.facebook_id || String(facebookId || '');
-    user.login_provider = user.login_provider || 'facebook';
+    user.login_provider = 'facebook';
     if (!user.email && normalizedEmail) user.email = normalizedEmail;
     user.avatar = user.avatar || avatar || null;
     user.full_name = user.full_name || name || '';
     if (!Array.isArray(user.social_providers)) user.social_providers = [];
     if (!user.social_providers.some((p) => p.provider === 'facebook')) {
       user.social_providers.push({ provider: 'facebook', provider_user_id: String(facebookId || '') });
+    }
+    // Add 'facebook' to authProviders if not present
+    if (!Array.isArray(user.authProviders)) user.authProviders = [];
+    if (!user.authProviders.includes('facebook')) {
+      user.authProviders.push('facebook');
     }
   }
 
@@ -257,18 +263,39 @@ export const register = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email và mật khẩu là bắt buộc' });
     }
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+
+    const normalizedRegEmail = normalizeEmail(email);
+    const existing = await User.findOne({ email: normalizedRegEmail });
+
     if (existing) {
+      // SECURITY: Detect provider collision — block email/password registration
+      // if the email is already owned by an OAuth provider
+      const providers = Array.isArray(existing.authProviders) ? existing.authProviders : [];
+      if (providers.includes('google') && !existing.password_hash) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email này đã được liên kết với Google Sign-In. Vui lòng đăng nhập bằng Google trước.',
+          code: 'PROVIDER_COLLISION_GOOGLE',
+        });
+      }
+      if (providers.includes('facebook') && !existing.password_hash) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email này đã được liên kết với Facebook. Vui lòng đăng nhập bằng Facebook trước.',
+          code: 'PROVIDER_COLLISION_FACEBOOK',
+        });
+      }
       return res.status(409).json({ success: false, message: 'Email đã được sử dụng' });
     }
+
     const normalizedPhone = normalizeVietnamPhone(phone || '');
     if (normalizedPhone && !isValidVietnamPhone(normalizedPhone)) {
       return res.status(400).json({ success: false, message: 'Số điện thoại không hợp lệ hoặc chưa cập nhật' });
     }
     const user = await User.create({
-      username: username || email.split('@')[0],
+      username: username || normalizedRegEmail.split('@')[0],
       full_name: username || '',
-      email: email.toLowerCase().trim(),
+      email: normalizedRegEmail,
       password_hash: password,
       phone: normalizedPhone,
       role_key: 'customer',
@@ -276,6 +303,7 @@ export const register = async (req, res) => {
       email_verified: false,
       signup_method: 'email',
       login_provider: 'local',
+      authProviders: ['local'],
     });
 
     try {
@@ -307,7 +335,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập email và mật khẩu' });
     }
     const query = emailOrPhone.includes('@')
-      ? { email: emailOrPhone.toLowerCase().trim() }
+      ? { email: normalizeEmail(emailOrPhone) }
       : { phone: emailOrPhone.trim() };
     const user = await User.findOne(query);
     if (!user) {
@@ -318,6 +346,27 @@ export const login = async (req, res) => {
       await logSecurityEvent({ userId: user._id, action: 'LOGIN_BLOCKED', resource: 'Auth', details: { reason: 'Account locked' }, ip: req.ip, requestId: req.id, status: 'FAILURE' });
       return res.status(403).json({ success: false, message: 'Tài khoản đã bị khóa' });
     }
+
+    // SECURITY: If user has no local password (pure OAuth), guide them to the correct provider
+    if (!user.password_hash) {
+      const providers = Array.isArray(user.authProviders) ? user.authProviders : [];
+      if (providers.includes('google')) {
+        return res.status(401).json({
+          success: false,
+          message: 'Tài khoản này sử dụng Google Sign-In. Vui lòng đăng nhập bằng Google.',
+          code: 'USE_GOOGLE_LOGIN',
+        });
+      }
+      if (providers.includes('facebook')) {
+        return res.status(401).json({
+          success: false,
+          message: 'Tài khoản này sử dụng Facebook. Vui lòng đăng nhập bằng Facebook.',
+          code: 'USE_FACEBOOK_LOGIN',
+        });
+      }
+      return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không đúng' });
+    }
+
     const valid = await user.comparePassword(password);
     if (!valid) {
       await logSecurityEvent({ userId: user._id, action: 'LOGIN_FAILED', resource: 'Auth', details: { reason: 'Invalid password' }, ip: req.ip, requestId: req.id, status: 'FAILURE' });
@@ -326,12 +375,12 @@ export const login = async (req, res) => {
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     await RefreshToken.create({ token: refreshToken, user_id: user._id });
-    
+
     user.role_key = user.role_key || mapRoleIdToKey(user.role_id);
     user.permissions = await getPermissionsForUser(user);
     user.last_login_at = new Date();
     await user.save();
-    
+
     await logSecurityEvent({ userId: user._id, action: 'LOGIN_SUCCESS', resource: 'Auth', details: { role: user.role_key }, ip: req.ip, requestId: req.id, status: 'SUCCESS' });
     return res.json({ success: true, data: { token, refreshToken, user: user.toPublic() }, message: 'Đăng nhập thành công' });
   } catch (err) {
@@ -375,7 +424,7 @@ export const googleLogin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google account không cung cấp email' });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
 
     // Find user by googleId first
     let user = await User.findOne({ googleId });
@@ -388,8 +437,14 @@ export const googleLogin = async (req, res) => {
         user.googleId = googleId;
         user.avatar = user.avatar || picture;
         user.full_name = user.full_name || name;
+        if (!Array.isArray(user.social_providers)) user.social_providers = [];
         if (!user.social_providers.some(p => p.provider === 'google')) {
           user.social_providers.push({ provider: 'google', provider_user_id: googleId });
+        }
+        // Add 'google' to authProviders if not present
+        if (!Array.isArray(user.authProviders)) user.authProviders = [];
+        if (!user.authProviders.includes('google')) {
+          user.authProviders.push('google');
         }
       } else {
         // Create new user
@@ -404,13 +459,22 @@ export const googleLogin = async (req, res) => {
           permissions: [],
           signup_method: 'google',
           login_provider: 'google',
+          authProviders: ['google'],
           email_verified: true,
           social_providers: [{ provider: 'google', provider_user_id: googleId }],
         });
       }
+    } else {
+      // Existing user found by googleId — ensure 'google' is in authProviders
+      if (!Array.isArray(user.authProviders)) user.authProviders = [];
+      if (!user.authProviders.includes('google')) {
+        user.authProviders.push('google');
+      }
     }
 
-    user.login_provider = user.login_provider || 'google';
+    // Update login_provider to reflect CURRENT login, mark email as verified (Google guarantees it)
+    user.login_provider = 'google';
+    user.email_verified = true;
     const payloadData = await hydrateUserAuthPayload(user);
 
     return res.json({ success: true, data: payloadData, message: 'Đăng nhập Google thành công' });
@@ -729,13 +793,13 @@ export const refresh = async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({ success: false, message: 'Missing refresh token' });
     }
-    
+
     // Check if token exists in DB
     const storedToken = await RefreshToken.findOne({ token: refreshToken });
     if (!storedToken) {
       return res.status(401).json({ success: false, message: 'Refresh token invalid or expired' });
     }
-    
+
     // REUSE DETECTION: If token is already revoked, someone is reusing an old token!
     if (storedToken.is_revoked) {
       // Invalidate ALL sessions for this user (force logout everywhere)
@@ -743,21 +807,21 @@ export const refresh = async (req, res) => {
       await logSecurityEvent({ userId: storedToken.user_id, action: 'TOKEN_REUSE_DETECTED', resource: 'Auth', details: { token: refreshToken }, ip: req.ip, requestId: req.id, status: 'SUSPICIOUS' });
       return res.status(401).json({ success: false, message: 'Security alert: Token reuse detected. All sessions terminated.' });
     }
-    
+
     const decoded = verifyRefreshToken(refreshToken);
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid refresh token' });
     }
-    
+
     // Token rotation: Mark old token as revoked, generate new
     storedToken.is_revoked = true;
     await storedToken.save();
-    
+
     const newToken = generateToken(user);
     const newRefresh = generateRefreshToken(user);
     await RefreshToken.create({ token: newRefresh, user_id: user._id });
-    
+
     return res.json({ success: true, data: { token: newToken, refreshToken: newRefresh } });
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Invalid refresh token' });
@@ -809,38 +873,216 @@ export const updateProfile = async (req, res) => {
 };
 
 // POST /api/auth/change-password
+// SECURITY: Only allow password creation/change for AUTHENTICATED users.
+// For OAuth-only users, this acts as "Create Password" (account linking).
+// Unauthenticated users CANNOT create a password for an OAuth account.
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới tối thiểu 8 ký tự' });
+    }
+    // Password strength: uppercase, lowercase, number, special char
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!strongRegex.test(newPassword)) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt' });
+    }
+
     const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+
+    const isCreatingPassword = !user.password_hash;
+
+    // If user already has a password, verify the current one
     if (user.password_hash) {
+      if (!currentPassword) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu hiện tại' });
+      }
       const valid = await user.comparePassword(currentPassword);
       if (!valid) return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không đúng' });
     }
+
     user.password_hash = newPassword; // pre-save hook hashes it
+    user.password_changed_at = new Date();
+
+    // Add 'local' to authProviders if creating password for OAuth-only account (account linking)
+    if (!Array.isArray(user.authProviders)) user.authProviders = [];
+    if (!user.authProviders.includes('local')) {
+      user.authProviders.push('local');
+    }
+
     await user.save();
-    return res.json({ success: true, message: 'Đổi mật khẩu thành công' });
+
+    // Invalidate all other sessions (security best practice)
+    await RefreshToken.deleteMany({ user_id: user._id });
+
+    // Create new session for current device
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+    await RefreshToken.create({ token: refreshToken, user_id: user._id });
+
+    // Audit log
+    await logSecurityEvent({
+      userId: user._id,
+      action: isCreatingPassword ? 'PASSWORD_CREATED' : 'PASSWORD_CHANGED',
+      resource: 'Auth',
+      details: { had_previous_password: !isCreatingPassword },
+      ip: req.ip,
+      requestId: req.id,
+      status: 'SUCCESS',
+    });
+
+    return res.json({
+      success: true,
+      message: isCreatingPassword ? 'Tạo mật khẩu thành công' : 'Đổi mật khẩu thành công',
+      data: { token, refreshToken, user: user.toPublic() },
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // POST /api/auth/forgot-password
+// SECURITY: Only allow forgot-password for accounts that HAVE a local password.
+// OAuth-only accounts should not be able to reset/create password via forgot-password.
 export const forgotPassword = async (req, res) => {
-  return res.json({ success: true, message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu' });
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // We intentionally return a success message even if the user is not found to prevent email enumeration
+    if (!user) {
+      return res.json({ success: true, message: 'Nếu email tồn tại trên hệ thống, bạn sẽ nhận được mã OTP' });
+    }
+
+    // SECURITY: Block forgot-password for OAuth-only accounts (no local password)
+    // This prevents attackers from using forgot-password to claim an OAuth account
+    if (!user.password_hash) {
+      const providers = Array.isArray(user.authProviders) ? user.authProviders : [];
+      const oauthOnly = providers.some(p => ['google', 'facebook'].includes(p)) && !providers.includes('local');
+      if (oauthOnly) {
+        // Return generic message to avoid email enumeration, but don't send OTP
+        return res.json({ success: true, message: 'Nếu email tồn tại trên hệ thống, bạn sẽ nhận được mã OTP' });
+      }
+    }
+
+    try {
+      await issueEmailOtpForUser(user, normalizedEmail, { bypassResendLimit: true });
+    } catch (err) {
+      console.error('Failed to send forgot password OTP:', err);
+    }
+
+    return res.json({ success: true, message: 'Nếu email tồn tại trên hệ thống, bạn sẽ nhận được mã OTP' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 // POST /api/auth/reset-password
+// SECURITY: Only allow reset for accounts that already have 'local' in authProviders.
 export const resetPassword = async (req, res) => {
-  return res.json({ success: true, message: 'Đặt lại mật khẩu thành công' });
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đầy đủ email, OTP và mật khẩu mới' });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+    }
+
+    // SECURITY: Block password reset for OAuth-only accounts
+    const providers = Array.isArray(user.authProviders) ? user.authProviders : [];
+    if (!user.password_hash && !providers.includes('local')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản này sử dụng đăng nhập qua mạng xã hội. Vui lòng đăng nhập bằng Google/Facebook trước rồi tạo mật khẩu.',
+      });
+    }
+
+    if (!user.email_verification_code || !user.email_verification_expires_at) {
+      return res.status(400).json({ success: false, message: 'OTP chưa được yêu cầu hoặc đã hết hạn' });
+    }
+
+    if (new Date(user.email_verification_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'OTP đã hết hạn. Vui lòng yêu cầu OTP mới.' });
+    }
+
+    if (user.email_verification_attempts >= EMAIL_OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ success: false, message: 'Nhập sai OTP quá nhiều lần. Vui lòng yêu cầu mã mới.' });
+    }
+
+    const isValidOtp = await bcrypt.compare(String(otp).trim(), user.email_verification_code);
+    if (!isValidOtp) {
+      user.email_verification_attempts = Number(user.email_verification_attempts || 0) + 1;
+      await user.save();
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác',
+        attempts_left: Math.max(0, EMAIL_OTP_MAX_ATTEMPTS - Number(user.email_verification_attempts)),
+      });
+    }
+
+    // OTP is valid. Update password.
+    user.password_hash = newPassword;
+
+    // Add 'local' to authProviders if not present
+    if (!providers.includes('local')) {
+      user.authProviders.push('local');
+    }
+
+    // Clear OTP states
+    user.email_verification_code = null;
+    user.email_verification_expires_at = null;
+    user.email_verification_attempts = 0;
+
+    // Invalidate all active sessions (security measure)
+    await RefreshToken.deleteMany({ user_id: user._id });
+    user.refresh_token = null;
+
+    await user.save();
+
+    return res.json({ success: true, message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 // POST /api/auth/logout-all
 export const logoutAll = async (req, res) => {
   try {
     if (req.user) {
+      // Delete ALL refresh tokens for this user from the DB
+      await RefreshToken.deleteMany({ user_id: req.user._id });
       req.user.refresh_token = null;
       await req.user.save();
+
+      // Re-issue a single session for the current device
+      const token = generateToken(req.user);
+      const refreshToken = generateRefreshToken(req.user);
+      await RefreshToken.create({ token: refreshToken, user_id: req.user._id });
+
+      await logSecurityEvent({
+        userId: req.user._id,
+        action: 'LOGOUT_ALL_DEVICES',
+        resource: 'Auth',
+        details: {},
+        ip: req.ip,
+        requestId: req.id,
+        status: 'SUCCESS',
+      });
+
+      return res.json({
+        success: true,
+        message: 'Đã đăng xuất tất cả thiết bị',
+        data: { token, refreshToken },
+      });
     }
     return res.json({ success: true, message: 'Đã đăng xuất tất cả thiết bị' });
   } catch (err) {

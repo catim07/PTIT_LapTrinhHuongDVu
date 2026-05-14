@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema({
   membership_level: { type: String, default: 'Đồng', enum: ['Đồng', 'Bạc', 'Vàng', 'Kim Cương'] },
   signup_method: { type: String, default: 'email' },
   login_provider: { type: String, default: 'local', enum: ['local', 'google', 'facebook', 'phone'] },
+  authProviders: { type: [String], default: ['local'], enum: ['local', 'google', 'facebook', 'phone'] },
   googleId: { type: String, default: null },
   facebookId: { type: String, default: null },
   facebook_id: { type: String, default: null },
@@ -68,9 +69,14 @@ const userSchema = new mongoose.Schema({
     notification_promo: { type: Boolean, default: true },
     notification_system: { type: Boolean, default: true },
   },
+  password_changed_at: { type: Date, default: null },
   security: {
     two_factor_enabled: { type: Boolean, default: false },
+    two_factor_method: { type: String, enum: ['EMAIL', 'TOTP', null], default: null },
+    totp_secret: { type: String, default: null },
+    backup_codes: [{ type: String }],
     last_login_device: { type: String, default: '' },
+    last_login_ip: { type: String, default: '' },
     last_login_at: { type: Date, default: null },
   },
   settings: {
@@ -82,21 +88,28 @@ const userSchema = new mongoose.Schema({
   },
   last_login_at: { type: Date, default: null },
   refresh_token: { type: String, default: null },
-  is_deleted: { type: Boolean, default: false }
+  is_deleted: { type: Boolean, default: false },
+  force_password_change: { type: Boolean, default: false },
+  employee_info: {
+    employee_code: { type: String, default: null },
+    department: { type: String, default: null },
+    work_type: { type: String, default: 'FULL_TIME', enum: ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', null] },
+    notes: { type: String, default: '' }
+  }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 // Soft Delete Middleware
-userSchema.pre('find', function() {
+userSchema.pre('find', function () {
   if (this.getQuery().is_deleted === undefined) {
     this.where({ is_deleted: { $ne: true } });
   }
 });
-userSchema.pre('findOne', function() {
+userSchema.pre('findOne', function () {
   if (this.getQuery().is_deleted === undefined) {
     this.where({ is_deleted: { $ne: true } });
   }
 });
-userSchema.pre('countDocuments', function() {
+userSchema.pre('countDocuments', function () {
   if (this.getQuery().is_deleted === undefined) {
     this.where({ is_deleted: { $ne: true } });
   }
@@ -122,12 +135,41 @@ userSchema.methods.comparePassword = async function (candidate) {
 
 userSchema.methods.toPublic = function () {
   const obj = this.toObject();
+  obj.has_password = !!this.password_hash;
+  obj.authProviders = Array.isArray(this.authProviders) ? [...this.authProviders] : [];
+
+  // Compute canonical auth_provider for frontend
+  const providers = obj.authProviders || [];
+  const hasPassword = !!this.password_hash;
+  const hasGoogle = providers.includes('google');
+  const hasFacebook = providers.includes('facebook');
+  const hasPhone = providers.includes('phone');
+  const hasLocal = providers.includes('local') || hasPassword;
+
+  if (hasGoogle && hasPassword) {
+    obj.auth_provider = 'LOCAL_GOOGLE_LINKED';
+  } else if (hasFacebook && hasPassword) {
+    obj.auth_provider = 'LOCAL_FACEBOOK_LINKED';
+  } else if (hasGoogle) {
+    obj.auth_provider = 'GOOGLE';
+  } else if (hasFacebook) {
+    obj.auth_provider = 'FACEBOOK';
+  } else if (hasPhone && !hasPassword) {
+    obj.auth_provider = 'PHONE';
+  } else {
+    obj.auth_provider = 'LOCAL';
+  }
+
   delete obj.password_hash;
   delete obj.refresh_token;
   delete obj.email_verification_code;
   delete obj.email_verification_expires_at;
   delete obj.email_verification_attempts;
   delete obj.email_otp_last_sent_at;
+  if (obj.security) {
+    delete obj.security.totp_secret;
+    delete obj.security.backup_codes;
+  }
   delete obj.__v;
   obj.phone = String(obj.phone || '');
   obj.id = obj._id;

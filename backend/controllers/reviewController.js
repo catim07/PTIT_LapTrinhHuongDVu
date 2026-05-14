@@ -1,7 +1,6 @@
 import Review from '../models/Review.js';
 import { paginateMeta } from '../utils/helpers.js';
 
-// GET /api/reviews
 export const list = async (req, res) => {
   try {
     const { page = 1, limit = 20, product_id, status } = req.query;
@@ -38,7 +37,52 @@ export const list = async (req, res) => {
     sort[req.query.sortBy || 'created_at'] = req.query.sortOrder === 'asc' ? 1 : -1;
     
     const total = await Review.countDocuments(filter);
-    const data = await Review.find(filter).sort(sort).skip((p - 1) * l).limit(l);
+    const rawData = await Review.find(filter).sort(sort).skip((p - 1) * l).limit(l).lean();
+    
+    // Populate product name and image for each review
+    const productIds = [...new Set(rawData.map(r => r.product_id).filter(Boolean))];
+    let productMap = {};
+    if (productIds.length > 0) {
+      const mongoose = (await import('mongoose')).default;
+      const Product = mongoose.model('Product');
+      const productIdStrings = productIds.map(id => String(id));
+      const validIds = productIdStrings.filter(id => mongoose.Types.ObjectId.isValid(id));
+      const legacyIds = productIdStrings.filter(id => !mongoose.Types.ObjectId.isValid(id));
+
+      const orFilters = [];
+      if (validIds.length > 0) {
+        orFilters.push({ _id: { $in: validIds } });
+      }
+      if (legacyIds.length > 0) {
+        orFilters.push({ master_id: { $in: legacyIds } });
+        orFilters.push({ sku: { $in: legacyIds } });
+        orFilters.push({ barcode: { $in: legacyIds } });
+      }
+
+      if (orFilters.length > 0) {
+        const products = await Product.find({ $or: orFilters })
+          .select('name images thumbnail master_id sku barcode')
+          .lean();
+
+        for (const prod of products) {
+          if (prod._id) productMap[String(prod._id)] = prod;
+          if (prod.master_id) productMap[String(prod.master_id)] = prod;
+          if (prod.sku) productMap[String(prod.sku)] = prod;
+          if (prod.barcode) productMap[String(prod.barcode)] = prod;
+        }
+      }
+    }
+
+    const data = rawData.map(r => {
+      const prod = r.product_id ? productMap[String(r.product_id)] : null;
+      return {
+        ...r,
+        id: r._id,
+        product_name: r.product_name || prod?.name || '',
+        product_image: prod?.images?.[0] || prod?.thumbnail || '',
+      };
+    });
+
     return res.json({ success: true, data, meta: paginateMeta(total, { page: p, limit: l }) });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../store';
 import { loadAddresses, addAddressThunk, updateAddressThunk, removeAddressThunk, setDefaultAddressThunk } from '../slices/addressSlice';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '../components/Toast/toastEvent';
@@ -28,12 +28,44 @@ const Addresses: React.FC = () => {
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<AddressFormData>({
+    const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<AddressFormData>({
       resolver: zodResolver(addressSchema),
       defaultValues: {
         is_default: false
       }
     });
+
+    const [provincesData, setProvincesData] = useState<any[]>([]);
+    const [districtsData, setDistrictsData] = useState<any[]>([]);
+    const [wardsData, setWardsData] = useState<any[]>([]);
+
+    const selectedCity = useWatch({ control, name: 'city' });
+    const selectedDistrict = useWatch({ control, name: 'district' });
+
+    useEffect(() => {
+      fetch('https://provinces.open-api.vn/api/?depth=3')
+        .then(res => res.json())
+        .then(data => setProvincesData(data))
+        .catch(err => console.error(err));
+    }, []);
+
+    useEffect(() => {
+      if (selectedCity && provincesData.length > 0) {
+        const p = provincesData.find((prov: any) => prov.name === selectedCity);
+        setDistrictsData(p?.districts || []);
+      } else {
+        setDistrictsData([]);
+      }
+    }, [selectedCity, provincesData]);
+
+    useEffect(() => {
+      if (selectedDistrict && districtsData.length > 0) {
+        const d = districtsData.find((dist: any) => dist.name === selectedDistrict);
+        setWardsData(d?.wards || []);
+      } else {
+        setWardsData([]);
+      }
+    }, [selectedDistrict, districtsData]);
 
     useEffect(() => {
       if (status === 'idle' && currentUserId) {
@@ -184,20 +216,35 @@ const Addresses: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                        <div>
                          <label className="block text-sm font-bold text-slate-700 mb-1">Tỉnh/TP</label>
-                         <input {...register('city')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition" placeholder="VD: Hồ Chí Minh" />
+                         <select {...register('city')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition appearance-none">
+                           <option value="">Chọn Tỉnh/Thành</option>
+                           {provincesData.map(p => (
+                             <option key={p.code} value={p.name}>{p.name}</option>
+                           ))}
+                         </select>
                          {errors.city && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.city.message as string}</p>}
                        </div>
                        <div>
                          <label className="block text-sm font-bold text-slate-700 mb-1">Quận/Huyện</label>
-                         <input {...register('district')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition" placeholder="VD: Quận 1" />
+                         <select {...register('district')} disabled={!selectedCity} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition appearance-none disabled:opacity-50">
+                           <option value="">Chọn Quận/Huyện</option>
+                           {districtsData.map(d => (
+                             <option key={d.code} value={d.name}>{d.name}</option>
+                           ))}
+                         </select>
                          {errors.district && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.district.message as string}</p>}
                        </div>
                        <div>
                          <label className="block text-sm font-bold text-slate-700 mb-1">Phường/Xã</label>
-                         <input {...register('ward')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition" placeholder="VD: Đa Kao" />
+                         <select {...register('ward')} disabled={!selectedDistrict} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition appearance-none disabled:opacity-50">
+                           <option value="">Chọn Phường/Xã</option>
+                           {wardsData.map(w => (
+                             <option key={w.code} value={w.name}>{w.name}</option>
+                           ))}
+                         </select>
                          {errors.ward && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.ward.message as string}</p>}
                        </div>
                     </div>

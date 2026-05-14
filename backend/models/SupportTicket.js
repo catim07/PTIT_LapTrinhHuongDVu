@@ -44,7 +44,6 @@ const ticketSchema = new mongoose.Schema({
   closed_at: { type: Date, default: null },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-ticketSchema.index({ ticket_code: 1 }, { unique: true, sparse: true });
 ticketSchema.index({ status: 1, created_at: -1 });
 
 export default mongoose.model('SupportTicket', ticketSchema);

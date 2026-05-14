@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { promotionService } from '../services/promotionService';
 import { useAppSelector } from '../store';
 import { toast } from '../components/Toast/toastEvent';
 
 const PromotionDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAppSelector((s) => s.auth);
@@ -72,16 +74,14 @@ const PromotionDetail: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="max-w-5xl mx-auto py-16 text-center">Đang tải chi tiết khuyến mãi...</div>;
+    return <div className="max-w-5xl mx-auto py-16 text-center">{t('promotion.loadingDetail')}</div>;
   }
 
   if (!promotion) {
     return (
       <div className="max-w-5xl mx-auto py-16 text-center">
-        <p className="text-slate-500 mb-4">Không tìm thấy chương trình khuyến mãi</p>
-        <button className="px-4 py-2 rounded bg-primary text-white" onClick={() => navigate('/promotions')}>
-          Quay lại trang khuyến mãi
-        </button>
+        <p className="text-slate-500 mb-4">{t('promotion.notFound')}</p>
+        <button className="px-4 py-2 rounded bg-primary text-white" onClick={() => navigate('/promotions')}>{t('promotion.backToPromo')}</button>
       </div>
     );
   }
@@ -103,10 +103,10 @@ const PromotionDetail: React.FC = () => {
               {promotion.badge_text || promotion.type || 'PROMO'}
             </span>
             {campaignState.soldOut && (
-              <span className="px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-bold uppercase">Hết lượt</span>
+              <span className="px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-bold uppercase">{t('promotion.outOfStock')}</span>
             )}
             {!campaignState.soldOut && campaignState.expired && (
-              <span className="px-3 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase">Đã hết hạn</span>
+              <span className="px-3 py-1 rounded bg-orange-100 text-orange-700 text-xs font-bold uppercase">{t('promotion.expired')}</span>
             )}
             <span className="text-xs text-slate-500">Độ ưu tiên: {promotion.priority || 0}</span>
           </div>
@@ -116,17 +116,17 @@ const PromotionDetail: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="bg-slate-50 dark:bg-slate-800 rounded p-3">
-              <p className="text-slate-500">Thời gian</p>
+              <p className="text-slate-500">{t('common.time')}</p>
               <p className="font-semibold">
                 {promotion.start_date ? new Date(promotion.start_date).toLocaleString('vi-VN') : 'Không giới hạn'} - {promotion.end_date ? new Date(promotion.end_date).toLocaleString('vi-VN') : 'Không giới hạn'}
               </p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 rounded p-3">
-              <p className="text-slate-500">Điều kiện đơn hàng</p>
+              <p className="text-slate-500">{t('promotion.orderCondition')}</p>
               <p className="font-semibold">Tối thiểu {Number(promotion.min_order_amount || 0).toLocaleString('vi-VN')}đ</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800 rounded p-3">
-              <p className="text-slate-500">Số lượng chiến dịch</p>
+              <p className="text-slate-500">{t('promotion.campaignQuantity')}</p>
               <p className="font-semibold">
                 {promotion.total_quantity ? `${Number(campaignState.remaining || 0).toLocaleString('vi-VN')} / ${Number(promotion.total_quantity).toLocaleString('vi-VN')} lượt còn lại` : 'Không giới hạn'}
               </p>

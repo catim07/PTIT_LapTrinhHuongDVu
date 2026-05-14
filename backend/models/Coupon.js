@@ -47,7 +47,6 @@ const couponSchema = new mongoose.Schema({
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-couponSchema.index({ code: 1 }, { unique: true });
 couponSchema.index({ is_active: 1, start_date: 1, end_date: 1 });
 couponSchema.index({ scope: 1 });
 couponSchema.index({ voucher_type: 1 });

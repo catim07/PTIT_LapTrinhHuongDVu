@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { auth, admin } from '../middlewares/auth.js';
+import { auth, admin, requirePermission } from '../middlewares/auth.js';
 import * as c from '../controllers/userController.js';
 
 const router = Router();
 router.get('/', auth, admin, c.list);
+router.post('/staff', auth, admin, requirePermission('settings.write'), c.createStaff);
 router.get('/me', auth, c.me);
 router.put('/me', auth, c.updateMe);
 router.get('/:id', auth, c.detail);

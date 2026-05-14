@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import enterpriseService from '../services/enterpriseService';
 import { dataService } from '../../services/dataService';
-import { productService } from '../../services/productService';
 import { useAppSelector } from '../../store';
 import { toast } from '../../components/Toast/toastEvent';
+import { useTranslation } from 'react-i18next';
 import {
   PageHeader, SearchBar, FilterBar, StatusBadge, EmptyState,
   LoadingOverlay, PaginationControl, Modal, DetailDrawer,
-  FormSection, FormField, StatCard, cls,
+  FormSection, FormField, StatCard, cls, InfoRow
 } from '../components/AdminUI';
+import { InlineCreateProductModal } from '../components/InlineCreateProductModal';
+import { exportImportOrderPDF, exportImportOrderWord } from '../utils/exportUtils';
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +23,7 @@ const STATUS_OPTIONS = [
 ];
 
 const AdminImportOrders: React.FC = () => {
+  const { t } = useTranslation();
   const { adminBranchId } = useAppSelector((s) => s.adminAuth);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,10 +47,6 @@ const AdminImportOrders: React.FC = () => {
 
   /* Inline Product Creation */
   const [inlineCreateOpen, setInlineCreateOpen] = useState(false);
-  const [inlineSubmitting, setInlineSubmitting] = useState(false);
-  const [newProductName, setNewProductName] = useState('');
-  const [newProductPrice, setNewProductPrice] = useState('');
-  const [newProductSupplier, setNewProductSupplier] = useState('');
 
   /* Detail drawer */
   const [detailOrder, setDetailOrder] = useState<any>(null);
@@ -77,18 +76,35 @@ const AdminImportOrders: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Refetch branch products whenever the selected branch in the modal changes
-  useEffect(() => {
-    if (!createBranchId) {
+  const loadBranchProducts = useCallback(async (branchId: string) => {
+    if (!branchId) {
       setBranchProducts([]);
-      return;
+      return [];
     }
     setLoadingProducts(true);
-    dataService.getBranchProducts(createBranchId)
-      .then(res => setBranchProducts(Array.isArray(res) ? res : []))
-      .catch(() => toast.error('Không tải được danh sách sản phẩm'))
-      .finally(() => setLoadingProducts(false));
-  }, [createBranchId]);
+    try {
+      const res = await dataService.getBranchProducts(branchId);
+      const data = Array.isArray(res) ? res : [];
+      setBranchProducts(data);
+      return data;
+    } catch {
+      toast.error(t('importOrders.errorLoadProducts'));
+      return [];
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  // Refetch branch products whenever the selected branch in the modal changes
+  useEffect(() => {
+    loadBranchProducts(createBranchId);
+  }, [createBranchId, loadBranchProducts]);
+
+  // Reset line items when branch changes to avoid cross-branch selections
+  useEffect(() => {
+    if (!createOpen) return;
+    setLines([{ branch_product_id: '', quantity_ordered: 1, unit_cost: 0 }]);
+  }, [createBranchId, createOpen]);
 
   const branchProductOptions = useMemo(() => {
     return branchProducts.map((bp: any) => ({
@@ -98,6 +114,12 @@ const AdminImportOrders: React.FC = () => {
       name: bp.product?.name || bp.name || '',
     }));
   }, [branchProducts]);
+
+  const selectedBranchName = useMemo(() => {
+    if (!createBranchId) return '';
+    const matched = branches.find((b: any) => String(b._id || b.id) === String(createBranchId));
+    return matched?.name || '';
+  }, [branches, createBranchId]);
 
   /* Filtered + paginated */
   const filteredRows = useMemo(() => {
@@ -134,8 +156,8 @@ const AdminImportOrders: React.FC = () => {
   /* Create order */
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierId) return toast.error('Chọn nhà cung cấp');
-    if (!createBranchId) return toast.error('Vui lòng chọn chi nhánh nhập hàng');
+    if (!supplierId) return toast.error(t('importOrders.errorSelectSupplier'));
+    if (!createBranchId) return toast.error(t('importOrders.errorSelectBranch'));
 
     const items = lines
       .map((line) => {
@@ -150,7 +172,7 @@ const AdminImportOrders: React.FC = () => {
       })
       .filter((line) => line.product_id && line.branch_product_id && line.quantity_ordered > 0);
 
-    if (items.length === 0) return toast.error('Đơn nhập cần ít nhất 1 dòng sản phẩm hợp lệ');
+    if (items.length === 0) return toast.error(t('importOrders.errorInvalidItems'));
 
     try {
       setSubmitting(true);
@@ -159,62 +181,35 @@ const AdminImportOrders: React.FC = () => {
         branch_id: createBranchId,
         expected_date: expectedDate || undefined,
         note,
-        status: 'ordered',
+        status: 'draft',
         items,
       });
-      toast.success('Đã tạo đơn nhập');
+      toast.success(t('importOrders.createOrderSuccess'));
       setCreateOpen(false);
       resetCreateForm();
       await loadData();
     } catch (err: any) {
-      toast.error(err?.message || 'Không thể tạo đơn nhập');
+      toast.error(err?.message || t('importOrders.createOrderError'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* Inline Product Creation Handler */
-  const handleInlineCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProductName.trim()) return toast.error('Vui lòng nhập tên sản phẩm');
-    if (!createBranchId) return toast.error('Vui lòng chọn chi nhánh trước khi tạo sản phẩm');
-
-    try {
-      setInlineSubmitting(true);
-      const supplierName = suppliers.find(s => String(s._id) === newProductSupplier)?.name || '';
-
-      const createdProduct = await productService.createProduct({
-        name: newProductName,
-        price: Number(newProductPrice) || 0,
-        supplier_id: newProductSupplier || undefined,
-        supplier_name: supplierName,
-        is_active: true,
-      });
-
-      // After product creation, explicitly create branchProduct 
-      if (createdProduct && (createdProduct.id || createdProduct._id)) {
-        await productService.createBranchProduct({
-          product_id: createdProduct.id || createdProduct._id,
-          branch_id: createBranchId,
-          price: Number(newProductPrice) || 0,
-          original_price: Number(newProductPrice) || 0,
-          stock: 0,
-          is_available: true
-        });
-      }
-      
+  const handleInlineSuccess = async (newBpId: string, price: number) => {
+      // Refresh products & grid
+      await loadBranchProducts(createBranchId);
       await loadData();
       
-      toast.success('Tạo sản phẩm mới thành công. Hãy chọn sản phẩm từ danh sách!');
-      setInlineCreateOpen(false);
-      setNewProductName('');
-      setNewProductPrice('');
-      setNewProductSupplier(supplierId); // prepopulate with order's supplier
-    } catch (err: any) {
-      toast.error(err?.message || 'Không thể tạo sản phẩm');
-    } finally {
-      setInlineSubmitting(false);
-    }
+      // Auto-assign newly created product to an empty line, or add a new line
+      if (newBpId) {
+        setLines((prev) => {
+          const idx = prev.findIndex((l) => !l.branch_product_id);
+          if (idx >= 0) {
+            return prev.map((l, i) => i === idx ? { ...l, branch_product_id: String(newBpId), unit_cost: price || 0 } : l);
+          }
+          return [...prev, { branch_product_id: String(newBpId), quantity_ordered: 1, unit_cost: price || 0 }];
+        });
+      }
   };
 
   const resetCreateForm = () => {
@@ -236,6 +231,23 @@ const AdminImportOrders: React.FC = () => {
       await loadData();
     } catch (err: any) {
       toast.error(err?.message || 'Không thể cập nhật trạng thái');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* Export Action */
+  const handleExportAction = async (type: 'pdf' | 'word', order: any) => {
+    try {
+      setLoading(true);
+      if (type === 'pdf') {
+        exportImportOrderPDF(order);
+      } else {
+        await exportImportOrderWord(order);
+      }
+      toast.success(`Đã xuất ${type.toUpperCase()}`);
+    } catch (error) {
+      toast.error(`Lỗi khi xuất file ${type.toUpperCase()}`);
     } finally {
       setLoading(false);
     }
@@ -314,6 +326,7 @@ const AdminImportOrders: React.FC = () => {
                     <th className={cls.thCell}>Nhà cung cấp</th>
                     <th className={cls.thCell}>Chi nhánh</th>
                     <th className={cls.thCell}>Trạng thái</th>
+                    <th className={cls.thCell}>Ngày dự kiến</th>
                     <th className={cls.thCell}>Tổng tiền</th>
                     <th className={cls.thCell}>Ngày tạo</th>
                     <th className={`${cls.thCell} text-right`}>Thao tác</th>
@@ -334,6 +347,11 @@ const AdminImportOrders: React.FC = () => {
                         <StatusBadge status={row.status || 'draft'} />
                       </td>
                       <td className={cls.tdCell}>
+                        <span className="text-xs text-slate-500">
+                          {row.expected_date ? new Date(row.expected_date).toLocaleDateString('vi-VN') : '—'}
+                        </span>
+                      </td>
+                      <td className={cls.tdCell}>
                         <span className="font-semibold">{Number(row.total_amount || 0).toLocaleString('vi-VN')} đ</span>
                       </td>
                       <td className={cls.tdCell}>
@@ -346,12 +364,12 @@ const AdminImportOrders: React.FC = () => {
                           <button onClick={() => setDetailOrder(row)} className={cls.btnGhost} title="Xem chi tiết">
                             <span className="material-symbols-outlined text-[16px]">visibility</span>
                           </button>
-                          {row.status !== 'received' && row.status !== 'cancelled' && (
+                          {row.status === 'draft' && (
                             <button
-                              onClick={() => setStatusAction({ id: String(row._id), status: 'received', label: 'Đánh dấu đã nhận' })}
-                              className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                              onClick={() => setStatusAction({ id: String(row._id), status: 'ordered', label: t('importOrders.confirmOrder', 'Xác nhận đặt hàng') })}
+                              className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                             >
-                              Nhận hàng
+                              {t('importOrders.confirmBtn', 'Xác nhận đơn')}
                             </button>
                           )}
                           {row.status !== 'cancelled' && row.status !== 'received' && (
@@ -441,21 +459,33 @@ const AdminImportOrders: React.FC = () => {
                       value={line.branch_product_id}
                       onChange={(e) => updateLine(idx, 'branch_product_id', e.target.value)}
                       className={cls.select + ' flex-1 !py-2'}
-                      disabled={loadingProducts}
+                      disabled={loadingProducts || !createBranchId}
                     >
-                      <option value="">{loadingProducts ? 'Đang tải...' : 'Chọn sản phẩm có sẵn...'}</option>
+                      <option value="">
+                        {!createBranchId
+                          ? t('importOrders.selectBranchFirst')
+                          : !loadingProducts && branchProductOptions.length === 0
+                            ? t('importOrders.emptyBranchProducts')
+                          : loadingProducts
+                            ? t('importOrders.loadingProducts')
+                            : t('importOrders.selectAvailable')}
+                      </option>
                       {branchProductOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                     <button 
                       type="button" 
                       onClick={() => {
-                        setNewProductSupplier(supplierId);
+                        if (!createBranchId) {
+                          toast.error(t('importOrders.errorSelectBranch'));
+                          return;
+                        }
                         setInlineCreateOpen(true);
                       }} 
-                      title="Tạo sản phẩm mới"
-                      className="inline-flex items-center justify-center h-[38px] px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors border border-blue-100 whitespace-nowrap"
+                      title={t('importOrders.createNew')}
+                      className="inline-flex items-center justify-center h-[38px] px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors border border-blue-100 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!createBranchId}
                     >
-                      + Tạo mới
+                      {t('importOrders.createNew')}
                     </button>
                   </div>
                   <div className="col-span-2">
@@ -497,11 +527,31 @@ const AdminImportOrders: React.FC = () => {
       >
         {detailOrder && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <StatusBadge status={detailOrder.status || 'draft'} />
-              <span className="text-xs text-slate-500">
-                {detailOrder.createdAt ? new Date(detailOrder.createdAt).toLocaleString('vi-VN') : ''}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <StatusBadge status={detailOrder.status || 'draft'} />
+                <span className="text-xs text-slate-500">
+                  {detailOrder.createdAt ? new Date(detailOrder.createdAt).toLocaleString('vi-VN') : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExportAction('word', detailOrder)}
+                  disabled={loading}
+                  className="px-3 py-1.5 flex items-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">description</span>
+                  {t('importOrders.exportWord', 'Xuất Word')}
+                </button>
+                <button
+                  onClick={() => handleExportAction('pdf', detailOrder)}
+                  disabled={loading}
+                  className="px-3 py-1.5 flex items-center gap-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                  {t('importOrders.exportPdf', 'Xuất PDF')}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -539,40 +589,14 @@ const AdminImportOrders: React.FC = () => {
       </DetailDrawer>
 
       {/* ========== INLINE CREATE PRODUCT MODAL ========== */}
-      <Modal
+      <InlineCreateProductModal
         open={inlineCreateOpen}
         onClose={() => setInlineCreateOpen(false)}
-        title="Tạo sản phẩm mới nhanh"
-        subtitle="Sản phẩm sẽ được thêm vào hệ thống và có thể chọn ngay"
-        icon="add_box"
-        size="md"
-        footer={
-          <>
-            <button type="button" onClick={() => setInlineCreateOpen(false)} className={cls.btnSecondary}>Hủy</button>
-            <button type="submit" form="inline-create-form" disabled={inlineSubmitting} className={cls.btnPrimary}>
-              {inlineSubmitting && <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>}
-              Tạo nhanh
-            </button>
-          </>
-        }
-      >
-        <form id="inline-create-form" onSubmit={handleInlineCreateProduct}>
-          <FormSection title="Thông tin cơ bản">
-            <FormField label="Tên sản phẩm" required>
-              <input className={cls.input} value={newProductName} onChange={e => setNewProductName(e.target.value)} placeholder="Nhập tên sản phẩm..." />
-            </FormField>
-            <FormField label="Giá bán tham khảo (đ)">
-              <input type="number" min={0} className={cls.input} value={newProductPrice} onChange={e => setNewProductPrice(e.target.value)} />
-            </FormField>
-            <FormField label="Nhà cung cấp">
-              <select className={cls.select + ' w-full'} value={newProductSupplier} onChange={e => setNewProductSupplier(e.target.value)}>
-                <option value="">-- Không chọn --</option>
-                {suppliers.map((s: any) => <option key={String(s._id)} value={String(s._id)}>{s.name}</option>)}
-              </select>
-            </FormField>
-          </FormSection>
-        </form>
-      </Modal>
+        branchId={createBranchId}
+        branchName={selectedBranchName}
+        defaultSupplierId={supplierId}
+        onSuccess={handleInlineSuccess}
+      />
 
       {/* ========== CONFIRM STATUS CHANGE ========== */}
       <Modal
@@ -598,12 +622,5 @@ const AdminImportOrders: React.FC = () => {
     </div>
   );
 };
-
-const InfoRow: React.FC<{ label: string; value?: string }> = ({ label, value }) => (
-  <div className="py-2 border-b border-slate-50">
-    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">{label}</span>
-    <span className="text-sm font-medium text-slate-800">{value || '—'}</span>
-  </div>
-);
 
 export default AdminImportOrders;

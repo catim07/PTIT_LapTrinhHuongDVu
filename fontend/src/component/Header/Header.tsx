@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import HeaderProfile from "./HeaderProfile";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { setCurrentBranch, loadBranches } from "../../slices/branchSlice";
+import { loadBranches } from "../../slices/branchSlice";
 import BranchSelector from "./BranchSelector";
 // import { clearCart } from "../../slices/cartSlice";
 import { dataService } from "../../services/dataService";
 import { setDefaultLanguageFromSettings } from "../../i18n";
 
 const Header: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,7 +28,7 @@ const Header: React.FC = () => {
   const searchRef = React.useRef<HTMLDivElement>(null);
 
   // Branch state
-  const { branches, currentBranch, status: branchStatus } = useAppSelector((s) => s.branch);
+  const { currentBranch, status: branchStatus } = useAppSelector((s) => s.branch);
   // const { data: cartData } = useAppSelector((s) => s.cart);
 
   useEffect(() => {
@@ -49,8 +50,8 @@ const Header: React.FC = () => {
 
   const navItems = [
     { label: t("nav.home"), path: "/home" },
-    { label: t("Smart Shopping"), path: "/smart-shopping" },
-    { label: t("About"), path: "/about" },
+    { label: t("nav.smartShopping"), path: "/smart-shopping" },
+    { label: t("nav.about"), path: "/about" },
     { label: t("nav.products"), path: "/products" },
     { label: t("nav.shopAtHome"), path: "/shop-at-home" },
     { label: t("nav.promotions"), path: "/promotions" },
@@ -105,13 +106,6 @@ const Header: React.FC = () => {
   // ─── Branch selector handler ─────────────────
   // Moved to BranchSelector component
 
-  // ─── Language selector handler ───────────────
-  const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.target.value;
-    i18n.changeLanguage(code);
-    localStorage.setItem("lotte_language", code);
-  };
-
   return (
     <header
       style={{
@@ -145,28 +139,14 @@ const Header: React.FC = () => {
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <span style={{ cursor: "pointer" }}>🎁 {t("nav.memberLotte")}</span>
           <span style={{ opacity: 0.3 }}>|</span>
-          <select
-            id="language-select"
-            value={i18n.language}
-            onChange={handleLangChange}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              outline: "none",
-              WebkitAppearance: "none" as any,
-              MozAppearance: "none" as any,
-              appearance: "none" as any,
-              paddingRight: 14,
-            }}
+          <Link
+            to="/account/support"
+            style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none", fontWeight: 700 }}
           >
-            <option value="vi" style={{ color: "#333", background: "white" }}>🇻🇳 VN</option>
-            <option value="en" style={{ color: "#333", background: "white" }}>🇺🇸 EN</option>
-          </select>
-          <span style={{ fontSize: 10, opacity: 0.7, marginLeft: -10 }}>▾</span>
+            {t('support.helpLink')}
+          </Link>
+          <span style={{ opacity: 0.3 }}>|</span>
+          <LanguageSwitcher />
         </div>
       </div>
 
@@ -280,7 +260,7 @@ const Header: React.FC = () => {
               {isSearching ? (
                 <div style={{ padding: "16px", textAlign: "center", color: "#666", fontSize: 14 }}>
                   <span className="material-symbols-outlined animate-spin" style={{ fontSize: 18, verticalAlign: "middle", marginRight: 6 }}>progress_activity</span>
-                  Đang tìm kiếm...
+                  {t('common.searching')}
                 </div>
               ) : suggestions.length > 0 ? (
                 <div>
@@ -356,12 +336,12 @@ const Header: React.FC = () => {
                       borderTop: "1px solid #f0f0f0"
                     }}
                   >
-                    Xem tất cả kết quả "{search}"
+                    {t('common.viewAllResults', { query: search })}
                   </div>
                 </div>
               ) : (
                 <div style={{ padding: "16px", textAlign: "center", color: "#666", fontSize: 14 }}>
-                  Không tìm thấy sản phẩm nào phù hợp.
+                  {t('common.noSearchResults')}
                 </div>
               )}
             </div>

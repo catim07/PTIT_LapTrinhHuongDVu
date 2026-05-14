@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "product": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Thịt Bò Mỹ": {
+          "name": "アメリカ産牛肉",
+          "short_description": "アメリカ産牛肉 description"
+        },
+        "Cá Hồi Na Uy": {
+          "name": "ノルウェー産サーモン",
+          "short_description": "ノルウェー産サーモン description"
+        },
+        "Nước mắm Nam Ngư": {
+          "name": "ナムグー ヌクマム",
+          "short_description": "ナムグー ヌクマム description"
+        },
+        "Sữa tươi Vinamilk": {
+          "name": "ビナミルク フレッシュミルク",
+          "short_description": "ビナミルク フレッシュミルク description"
+        },
+        "Bia Heineken": {
+          "name": "ハイネケンビール",
+          "short_description": "ハイネケンビール description"
+        },
+        "Mì Hảo Hảo": {
+          "name": "ハオハオ ヌードル",
+          "short_description": "ハオハオ ヌードル description"
+        },
+        "Coca Cola": {
+          "name": "コカ・コーラ",
+          "short_description": "コカ・コーラ description"
+        },
+        "Gạo ST25": {
+          "name": "ST25米",
+          "short_description": "ST25米 description"
+        },
+        "Cà chua Đà Lạt": {
+          "name": "ダラット産トマト",
+          "short_description": "ダラット産トマト description"
+        },
+        "Thịt Heo CP": {
+          "name": "CP豚肉",
+          "short_description": "CP豚肉 description"
+        }
+      }
+    },
+    "category": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Thịt, Cá, Hải Sản": {
+          "name": "肉・魚・シーフード"
+        },
+        "Rau Củ Quả": {
+          "name": "野菜・果物"
+        },
+        "Thực phẩm đóng hộp": {
+          "name": "缶詰食品"
+        },
+        "Sữa và Các sản phẩm từ sữa": {
+          "name": "牛乳・乳製品"
+        },
+        "Gia Vị, Nước Chấm": {
+          "name": "調味料・ソース"
+        },
+        "Bánh Kẹo, Snack": {
+          "name": "お菓子・スナック"
+        },
+        "Đồ Uống": {
+          "name": "飲料"
+        },
+        "Đồ Dùng Gia Đình": {
+          "name": "家庭用品"
+        },
+        "Mì, Miến, Cháo, Phở": {
+          "name": "麺類・おかゆ"
+        },
+        "Thực phẩm chay": {
+          "name": "ベジタリアンフード"
+        },
+        "Gạo, Bột, Đồ khô": {
+          "name": "米・乾物"
+        },
+        "Chăm sóc cá nhân": {
+          "name": "パーソナルケア"
+        }
+      }
+    },
+    "banner": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "hotDeal": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "featuredCollection": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "promotion": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "coupon": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "event": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "notification": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "branch": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {}
+    },
+    "membershipTier": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Đồng": {
+          "level": "ブロンズ"
+        },
+        "Bạc": {
+          "level": "シルバー"
+        },
+        "Vàng": {
+          "level": "ゴールド"
+        },
+        "Kim Cương": {
+          "level": "ダイヤモンド"
+        }
+      }
+    }
+  },
+  "status": {
+    "order": {
+      "PENDING": "保留",
+      "CONFIRMED": "確認済み",
+      "PROCESSING": "準備中",
+      "SHIPPING": "配送中",
+      "DELIVERED": "配達済み",
+      "COMPLETED": "完了",
+      "CANCELLED": "キャンセル",
+      "RETURNED": "返品済み",
+      "REFUNDED": "返金済み"
+    },
+    "promotion": {
+      "draft": "下書き",
+      "active": "有効",
+      "scheduled": "予約済み",
+      "expired": "期限切れ",
+      "paused": "一時停止"
+    },
+    "coupon": {
+      "draft": "下書き",
+      "active": "有効",
+      "scheduled": "予約済み",
+      "expired": "期限切れ",
+      "paused": "一時停止"
+    }
+  },
+  "labels": {
+    "badges": {
+      "Hết hạn": "期限切れ",
+      "Sắp hết hạn": "まもなく期限切れ",
+      "Tồn thấp": "在庫少なめ",
+      "Tồn kho thấp": "在庫少なめ",
+      "Nhập mới": "新入荷",
+      "Best seller": "人気商品",
+      "Nổi bật": "注目",
+      "expiryIn": "{{days}}日後に期限",
+      "remainingIn": "残り{{days}}日"
+    }
+  },
+  "messages": {}
+}

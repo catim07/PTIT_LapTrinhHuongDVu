@@ -20,7 +20,9 @@ const loadAdminFromStorage = (): AdminAuthState => {
   try {
     const savedBranch = localStorage.getItem('admin_current_branch_id');
     if (savedBranch) adminBranchId = savedBranch;
-  } catch (e) {}
+  } catch (_e) {
+    void _e;
+  }
 
   try {
     const token = localStorage.getItem('admin_token');
@@ -36,7 +38,8 @@ const loadAdminFromStorage = (): AdminAuthState => {
         _initialized: false,
       };
     }
-  } catch (e) {
+  } catch (_e) {
+    void _e;
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
   }

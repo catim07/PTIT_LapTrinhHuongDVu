@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadPaymentMethods, loadPaymentTransactions, setDefaultPayment, deletePaymentMethod, addPaymentMethod } from '../slices/paymentSlice';
 import { toast } from '../components/Toast/toastEvent';
 
 const PaymentMethods: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector(state => state.auth);
   const { methods, transactions, status, error } = useAppSelector(state => state.payment);
@@ -119,11 +121,9 @@ const PaymentMethods: React.FC = () => {
         <section className="flex-1 flex flex-col gap-8">
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Link to="/account" className="hover:text-primary">
-                Tài khoản
-              </Link>
+              <Link to="/account" className="hover:text-primary">{t('common.account')}</Link>
               <span className="material-symbols-outlined text-xs">chevron_right</span>
-              <span className="text-slate-900 dark:text-slate-100 font-semibold">Phương thức thanh toán</span>
+              <span className="text-slate-900 dark:text-slate-100 font-semibold">{t('paymentMethods.title')}</span>
             </div>
 
             {/* Header */}
@@ -149,8 +149,8 @@ const PaymentMethods: React.FC = () => {
                     <span className="material-symbols-outlined text-4xl">credit_card_off</span>
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-bold text-lg">Chưa lưu phương thức thanh toán nào</h3>
-                    <p className="text-slate-500 text-sm">Thêm một thẻ hoặc ví để thanh toán dễ dàng</p>
+                    <h3 className="font-bold text-lg">{t('paymentMethods.noSaved')}</h3>
+                    <p className="text-slate-500 text-sm">{t('paymentMethods.addForEasy')}</p>
                   </div>
                </div>
             ) : (
@@ -158,9 +158,7 @@ const PaymentMethods: React.FC = () => {
                 {methods.map(method => (
                   <div key={method.id} className={`bg-white dark:bg-slate-800 rounded-xl p-6 border ${method.is_default ? 'border-primary border-2 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-primary/50'} relative overflow-hidden group transition-all`}>
                     {method.is_default && (
-                      <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-widest uppercase shadow">
-                        Mặc định
-                      </div>
+                      <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-widest uppercase shadow">{t('address.default')}</div>
                     )}
                     <div className="flex justify-between items-start mb-8">
                       <div className={`size-12 rounded-lg ${method.type === 'wallet' ? 'bg-[#A50064] text-white font-black text-xs' : 'bg-slate-50 dark:bg-slate-700 text-blue-800'} flex items-center justify-center border border-gray-100 shadow-sm`}>
@@ -180,7 +178,7 @@ const PaymentMethods: React.FC = () => {
                         <div>
                           {method?.type === 'card' && (
                             <>
-                              <p className="text-[10px] uppercase text-slate-400 font-bold tracking-tighter mb-0.5">Hết hạn / Mở rộng</p>
+                              <p className="text-[10px] uppercase text-slate-400 font-bold tracking-tighter mb-0.5">{t('paymentMethods.expireExtend')}</p>
                               <p className="font-bold text-sm">{method.expiry}</p>
                             </>
                           )}
@@ -191,9 +189,7 @@ const PaymentMethods: React.FC = () => {
                         <div className="flex flex-col items-end gap-2 text-right">
                           <p className={`font-black tracking-tight text-lg ${method.is_default ? 'text-slate-900 dark:text-slate-100 italic' : method.type === 'wallet' ? 'text-[#A50064]' : 'text-slate-900 dark:text-slate-100 italic'}`}>{method.brand}</p>
                           {!method.is_default && (
-                            <button onClick={() => handleSetDefault(method.id)} className="text-xs px-2 py-1 bg-gray-50 rounded font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                              Đặt mặc định
-                            </button>
+                            <button onClick={() => handleSetDefault(method.id)} className="text-xs px-2 py-1 bg-gray-50 rounded font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">{t('paymentMethods.setDefault')}</button>
                           )}
                         </div>
                       </div>
@@ -208,7 +204,7 @@ const PaymentMethods: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-700">Thanh toán khi nhận hàng (COD)</h3>
-                    <p className="text-xs text-slate-500 mt-1">Luôn có sẵn khi thanh toán</p>
+                    <p className="text-xs text-slate-500 mt-1">{t('paymentMethods.alwaysAvail')}</p>
                   </div>
                 </div>
               </div>
@@ -217,39 +213,39 @@ const PaymentMethods: React.FC = () => {
             {/* Hiển thị Lịch sử giao dịch */}
             <div className="mt-8">
                <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-                 <h3 className="text-xl font-bold">Lịch sử giao dịch qua cổng</h3>
+                 <h3 className="text-xl font-bold">{t('paymentMethods.txHistory')}</h3>
                </div>
                {transactions.length === 0 ? (
-                 <p className="text-slate-500 bg-gray-50 p-6 rounded-xl text-center">Chưa có giao dịch ghi nhận.</p>
+                 <p className="text-slate-500 bg-gray-50 p-6 rounded-xl text-center">{t('paymentMethods.noTx')}</p>
                ) : (
                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                        <table className="w-full text-left text-sm whitespace-nowrap">
                           <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold uppercase text-xs">
                              <tr>
-                                <th className="px-6 py-4">Mã GD</th>
+                                <th className="px-6 py-4">{t('paymentMethods.txId')}</th>
                                 <th className="px-6 py-4">Nguồn</th>
                                 <th className="px-6 py-4">Số tiền</th>
                                 <th className="px-6 py-4">Trạng thái</th>
-                                <th className="px-6 py-4">Thời gian</th>
+                                <th className="px-6 py-4">{t('common.time')}</th>
                              </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                             {transactions.map(t => (
-                                <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                   <td className="px-6 py-4 font-mono text-xs">{t.transaction_id || t.id}</td>
-                                   <td className="px-6 py-4 font-semibold text-slate-700">{(t as any).provider || 'CARD'}</td>
-                                   <td className="px-6 py-4 font-bold text-primary">{t.amount.toLocaleString('vi-VN')}đ</td>
+                             {transactions.map(tx => (
+                                <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                   <td className="px-6 py-4 font-mono text-xs">{tx.transaction_id || tx.id}</td>
+                                   <td className="px-6 py-4 font-semibold text-slate-700">{(tx as any).provider || 'CARD'}</td>
+                                   <td className="px-6 py-4 font-bold text-primary">{tx.amount.toLocaleString('vi-VN')}đ</td>
                                    <td className="px-6 py-4">
-                                      {t.status === 'SUCCESS' ? (
-                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-emerald-100 text-emerald-700">THÀNH CÔNG</span>
-                                      ) : t.status === 'FAILED' ? (
-                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-red-100 text-red-700">THẤT BẠI</span>
+                                      {tx.status === 'SUCCESS' ? (
+                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-emerald-100 text-emerald-700">{t('paymentMethods.success')}</span>
+                                      ) : tx.status === 'FAILED' ? (
+                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-red-100 text-red-700">{t('paymentMethods.failed')}</span>
                                       ) : (
-                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-amber-100 text-amber-700">ĐANG XỬ LÍ</span>
+                                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-amber-100 text-amber-700">{t('paymentMethods.processing')}</span>
                                       )}
                                    </td>
-                                   <td className="px-6 py-4 text-slate-500 font-medium">{new Date(t.created_at).toLocaleString('vi-VN')}</td>
+                                   <td className="px-6 py-4 text-slate-500 font-medium">{new Date(tx.created_at).toLocaleString('vi-VN')}</td>
                                 </tr>
                              ))}
                           </tbody>
@@ -266,7 +262,7 @@ const PaymentMethods: React.FC = () => {
          <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative animate-in zoom-in-95 disabled:pointer-events-none">
                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-bold text-lg">Thêm phương thức</h3>
+                  <h3 className="font-bold text-lg">{t('paymentMethods.addMethod')}</h3>
                   <button onClick={() => !isSubmitting && setShowModal(false)} className="size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
                      <span className="material-symbols-outlined text-sm">close</span>
                   </button>
@@ -274,8 +270,8 @@ const PaymentMethods: React.FC = () => {
                <form onSubmit={handleAddMethod} className="p-6">
                   
                   <div className="flex gap-2 mb-6 p-1 bg-slate-100 rounded-lg">
-                     <button type="button" onClick={() => { setFormType('card'); setBrand('VISA'); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition ${formType === 'card' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-800'}`}>Thẻ Ngân Hàng</button>
-                     <button type="button" onClick={() => { setFormType('wallet'); setBrand('MoMo'); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition ${formType === 'wallet' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-800'}`}>Ví Điện Tử</button>
+                     <button type="button" onClick={() => { setFormType('card'); setBrand('VISA'); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition ${formType === 'card' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-800'}`}>{t('paymentMethods.bankCard')}</button>
+                     <button type="button" onClick={() => { setFormType('wallet'); setBrand('MoMo'); }} className={`flex-1 py-2 text-sm font-bold rounded-md transition ${formType === 'wallet' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-800'}`}>{t('paymentMethods.eWallet')}</button>
                   </div>
 
                   {formType === 'card' && (
@@ -292,7 +288,7 @@ const PaymentMethods: React.FC = () => {
                         </div>
                         
                         <div>
-                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Số thẻ</label>
+                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">{t('paymentMethods.cardNumber')}</label>
                            <div className="relative">
                               <input 
                                  type="text" 
@@ -306,12 +302,12 @@ const PaymentMethods: React.FC = () => {
                            </div>
                         </div>
                         <div>
-                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Tên in trên thẻ</label>
+                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">{t('paymentMethods.cardName')}</label>
                            <input type="text" placeholder="NGUYEN VAN A" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 uppercase focus:outline-none focus:border-primary" value={holderName} onChange={(e) => setHolderName(e.target.value)} required />
                         </div>
                         <div className="flex gap-4">
                            <div className="flex-1">
-                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Ngày hết hạn</label>
+                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">{t('paymentMethods.expDate')}</label>
                               <input type="text" placeholder="MM/YY" maxLength={5} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono font-bold focus:outline-none focus:border-primary text-slate-800 text-center" value={expiry} onChange={(e) => setExpiry(e.target.value)} required />
                            </div>
                            <div className="flex-1">
@@ -336,7 +332,7 @@ const PaymentMethods: React.FC = () => {
                         </div>
 
                         <div>
-                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Số điện thoại liên kết ví</label>
+                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">{t('paymentMethods.walletPhone')}</label>
                            <div className="relative">
                               <input 
                                  type="tel" 
@@ -354,14 +350,14 @@ const PaymentMethods: React.FC = () => {
 
                   <label className="mt-5 flex items-center gap-2 cursor-pointer select-none border border-gray-100 p-3 rounded-xl bg-gray-50">
                      <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary" />
-                     <span className="text-sm font-semibold text-gray-700">Đặt làm phương thức mặc định</span>
+                     <span className="text-sm font-semibold text-gray-700">{t('paymentMethods.setAsDefault')}</span>
                   </label>
 
                   <button type="submit" disabled={isSubmitting} className="w-full mt-6 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center disabled:opacity-50">
                      {isSubmitting ? (
                         <span className="material-symbols-outlined animate-spin">autorenew</span>
                      ) : (
-                        <span>Lưu Phương Thức</span>
+                        <span>{t('paymentMethods.saveMethod')}</span>
                      )}
                   </button>
                </form>

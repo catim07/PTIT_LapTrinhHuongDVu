@@ -4,8 +4,14 @@ import rateLimit from 'express-rate-limit';
 import {
   promotionImageUploadMiddleware,
   reviewImageUploadMiddleware,
+  supportImageUploadMiddleware,
+  evidenceImageUploadMiddleware,
   uploadPromotionImage,
   uploadReviewImages,
+  uploadSupportImages,
+  uploadEvidenceImages,
+  brandLogoUploadMiddleware,
+  uploadBrandLogo,
 } from '../controllers/uploadController.js';
 
 const router = Router();
@@ -34,6 +40,33 @@ router.post('/review-images', auth, uploadLimiter, (req, res, next) => {
     return next();
   });
 }, uploadReviewImages);
+
+router.post('/support-images', auth, uploadLimiter, (req, res, next) => {
+  supportImageUploadMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    return next();
+  });
+}, uploadSupportImages);
+
+router.post('/evidence-images', auth, uploadLimiter, (req, res, next) => {
+  evidenceImageUploadMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    return next();
+  });
+}, uploadEvidenceImages);
+
+router.post('/brand-logo', auth, admin, uploadLimiter, (req, res, next) => {
+  brandLogoUploadMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    return next();
+  });
+}, uploadBrandLogo);
 
 export default router;
 

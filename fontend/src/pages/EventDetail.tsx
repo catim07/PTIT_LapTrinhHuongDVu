@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { dataService } from '../services/dataService';
 import { eventService } from '../services/eventService';
@@ -8,7 +9,15 @@ import { useAppSelector } from '../store';
 /* ─── Lightbox ───────────────────────────────────────────────── */
 const Lightbox: React.FC<{ images: string[]; index: number; onClose: () => void }> = ({ images, index, onClose }) => {
   const [cur, setCur] = useState(index);
-  useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') setCur(p => Math.min(p + 1, images.length - 1)); if (e.key === 'ArrowLeft') setCur(p => Math.max(p - 1, 0)); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [images.length, onClose]);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setCur(p => Math.min(p + 1, images.length - 1));
+      if (e.key === 'ArrowLeft') setCur(p => Math.max(p - 1, 0));
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [images.length, onClose]);
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <button onClick={onClose} className="absolute top-6 right-6 text-white/80 hover:text-white z-10" aria-label="Đóng">
@@ -41,6 +50,7 @@ const timeAgo = (d: string) => {
 };
 
 const EventDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAppSelector(s => s.auth);
 
@@ -56,13 +66,31 @@ const EventDetail: React.FC = () => {
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
 
+  // Likes
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+
   // Comment input
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<any>(null);
 
-  // PDF
   const [pdfLoading, setPdfLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  
+  // Actions Menu
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMoreActions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +103,7 @@ const EventDetail: React.FC = () => {
         const found = await eventService.getEventDetail(id || '');
         if (!found) { setNotFound(true); setLoading(false); return; }
         setPost(found);
+        setLikesCount(found.likes || 0);
 
         const postId = found.id || found._id;
         const [detail, cmts, related] = await Promise.all([
@@ -83,7 +112,16 @@ const EventDetail: React.FC = () => {
           dataService.getRelatedEventPosts(postId),
         ]);
         setPostDetail(detail);
-        setComments(cmts);
+        
+        // Enhance with real like state if user is logged in
+        setIsLiked(Array.isArray(found.liked_by) && user ? found.liked_by.includes(user.id || user._id) : false);
+
+        const enhancedCmts = cmts.map(c => ({
+          ...c,
+          isLiked: Array.isArray(c.liked_by) && user ? c.liked_by.includes(user.id || user._id) : false,
+          likes: c.likes || 0
+        }));
+        setComments(enhancedCmts);
         setRelatedPosts(related);
       } catch {
         setNotFound(true);
@@ -128,25 +166,83 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // ─── Interaction ──────────────────────────────────────────────
+  const handleToggleLike = async () => {
+    if (!user) {
+      toast.error(t('event.loginRequired', 'Vui lòng đăng nhập để thực hiện'));
+      return;
+    }
+    if (!post) return;
+    
+    const postId = post.id || post._id;
+    const newLiked = !isLiked;
+    setIsLiked(newLiked);
+    setLikesCount(p => newLiked ? p + 1 : Math.max(0, p - 1));
+    
+    try {
+      await dataService.toggleEventLike(postId);
+    } catch {
+      // Revert on error
+      setIsLiked(!newLiked);
+      setLikesCount(p => !newLiked ? p + 1 : Math.max(0, p - 1));
+      toast.error('Lỗi khi thích bài viết');
+    }
+  };
+
   // ─── Comment submit ───────────────────────────────────────────
   const handleAddComment = async () => {
+    if (!user) {
+      toast.error(t('event.loginRequired', 'Vui lòng đăng nhập để thực hiện'));
+      return;
+    }
     if (!commentText.trim() || !post) return;
     setCommentLoading(true);
     try {
       const newComment = await dataService.addEventComment({
         post_id: post.id || post._id,
-        user_id: user?.id || 0,
-        user_name: user?.full_name || user?.username || 'Khách',
-        avatar: user?.avatar || 'https://i.pravatar.cc/100?img=0',
+        user_id: user.id || user._id,
+        user_name: user.full_name || user.username || 'Khách',
+        user_avatar: user.avatar || '',
         content: commentText.trim(),
+        parent_id: replyingTo?.id || replyingTo?._id || null,
       });
-      setComments(prev => [...prev, newComment]);
+      setComments(prev => [...prev, { ...newComment, isLiked: false, likes: 0 }]);
       setCommentText('');
-      toast.success('Đã đăng bình luận!');
+      setReplyingTo(null);
+      toast.success(t('event.sendCommentSuccess', 'Đã đăng bình luận!'));
     } catch {
-      toast.error('Không thể đăng bình luận');
+      toast.error(t('event.sendCommentError', 'Không thể đăng bình luận'));
     } finally {
       setCommentLoading(false);
+    }
+  };
+
+  const handleLikeComment = async (cmtId: string | number) => {
+    if (!user) {
+      toast.error(t('event.loginRequired', 'Vui lòng đăng nhập để thực hiện'));
+      return;
+    }
+    if (!post) return;
+
+    // Optimistic update
+    setComments(prev => prev.map(c => {
+      if (c.id === cmtId || c._id === cmtId) {
+        return { ...c, likes: (c.likes || 0) + (c.isLiked ? -1 : 1), isLiked: !c.isLiked };
+      }
+      return c;
+    }));
+
+    try {
+      await dataService.toggleCommentLike(post.id || post._id, cmtId);
+    } catch {
+      // Revert on error
+      setComments(prev => prev.map(c => {
+        if (c.id === cmtId || c._id === cmtId) {
+          return { ...c, likes: (c.likes || 0) + (c.isLiked ? -1 : 1), isLiked: !c.isLiked };
+        }
+        return c;
+      }));
+      toast.error('Lỗi khi thích bình luận');
     }
   };
 
@@ -264,6 +360,14 @@ const EventDetail: React.FC = () => {
 
   const category = categories.find((c: any) => c.id === post?.category || c.id === post?.category_id);
   const formatDate = (d?: string) => { if (!d) return ''; try { return new Date(d).toLocaleDateString('vi-VN'); } catch { return d; } };
+  const formatPeriod = (start?: string, end?: string) => {
+    if (!start && !end) return '';
+    const s = start ? new Date(start).toLocaleDateString('vi-VN') : '';
+    const e = end ? new Date(end).toLocaleDateString('vi-VN') : '';
+    if (s && e) return `${s} - ${e}`;
+    if (s) return `${s} ${t('event.ongoing')}`;
+    return e;
+  };
 
   // ─── Loading ──────────────────────────────────────────────────
   if (loading) {
@@ -293,11 +397,9 @@ const EventDetail: React.FC = () => {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 text-center">
         <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4">article</span>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Không tìm thấy sự kiện</h1>
-        <p className="text-slate-500 mb-6">Bài viết không tồn tại hoặc đã bị gỡ.</p>
-        <Link to="/featured-events" className="px-6 py-3 bg-primary text-white rounded-full font-bold hover:opacity-90 transition-opacity">
-          Quay lại danh sách sự kiện
-        </Link>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">{t('event.notFound')}</h1>
+        <p className="text-slate-500 mb-6">{t('event.notExist')}</p>
+        <Link to="/featured-events" className="px-6 py-3 bg-primary text-white rounded-full font-bold hover:opacity-90 transition-opacity">{t('event.backToList')}</Link>
       </div>
     );
   }
@@ -306,9 +408,9 @@ const EventDetail: React.FC = () => {
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-8 flex-wrap" aria-label="Breadcrumb">
-        <Link to="/" className="hover:text-primary transition-colors">Trang chủ</Link>
+        <Link to="/" className="hover:text-primary transition-colors">{t('common.home')}</Link>
         <span className="material-symbols-outlined text-xs">chevron_right</span>
-        <Link to="/featured-events" className="hover:text-primary transition-colors">Sự kiện nổi bật</Link>
+        <Link to="/featured-events" className="hover:text-primary transition-colors">{t('event.featured')}</Link>
         <span className="material-symbols-outlined text-xs">chevron_right</span>
         <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[200px]">{post.title}</span>
       </nav>
@@ -335,8 +437,7 @@ const EventDetail: React.FC = () => {
                 </span>
                 {post.is_featured && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-400 text-slate-900 text-xs font-bold rounded-full">
-                    <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> Nổi bật
-                  </span>
+                    <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>{t('event.isFeatured')}</span>
                 )}
               </div>
               <h1 className="text-3xl lg:text-4xl font-bold leading-tight text-slate-900 dark:text-white mb-4">
@@ -350,26 +451,24 @@ const EventDetail: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-base">calendar_today</span>
-                  <span>{formatDate(post.published_at) || `${post.start_date} ${post.end_date ? `- ${post.end_date}` : ''}`}</span>
+                  <span>{formatDate(post.published_at) || formatPeriod(post.start_date, post.end_date)}</span>
                 </div>
                 {post.read_time && (
                   <div className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-base">schedule</span>
-                    <span>{post.read_time} phút đọc</span>
+                    <span>{post.read_time} {t('event.readTime')}</span>
                   </div>
                 )}
                 {post.views != null && (
                   <div className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-base">visibility</span>
-                    <span>{post.views.toLocaleString()} lượt xem</span>
+                    <span>{post.views.toLocaleString()} {t('event.views')}</span>
                   </div>
                 )}
-                {post.likes != null && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                    <span>{post.likes.toLocaleString()}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-base" style={isLiked ? { fontVariationSettings: "'FILL' 1", color: '#E60012' } : {}}>favorite</span>
+                  <span className={isLiked ? 'text-primary font-bold' : ''}>{likesCount.toLocaleString()}</span>
+                </div>
               </div>
 
               {/* Tags */}
@@ -387,7 +486,7 @@ const EventDetail: React.FC = () => {
               {(post.start_date || post.end_date) && (
                 <div className="flex items-center gap-2 text-sm text-primary font-medium bg-primary/5 dark:bg-primary/10 px-4 py-2 rounded-lg w-fit">
                   <span className="material-symbols-outlined text-base">event</span>
-                  Áp dụng: {post.start_date} {post.end_date ? `→ ${post.end_date}` : '— Đang diễn ra'}
+                  {t('event.applyPeriod')}: {formatPeriod(post.start_date, post.end_date)}
                 </div>
               )}
 
@@ -397,30 +496,57 @@ const EventDetail: React.FC = () => {
             </div>
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-3 mt-2 print:hidden">
+            <div className="flex flex-wrap items-center gap-3 mt-4 print:hidden">
               <a
                 href="#content"
-                className="flex items-center justify-center px-8 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-primary/20"
-              >
-                Đọc bài
-              </a>
+                className="flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-primary/20"
+              >{t('event.readArticle')}</a>
+              
               <button
-                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Đã sao chép link!'); }}
-                className="flex items-center justify-center px-8 py-3 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2"
+                onClick={handleToggleLike}
+                className={`flex items-center justify-center px-6 py-3 border-2 font-bold rounded-xl transition-colors gap-2 ${isLiked ? 'bg-red-50 text-primary border-primary/20 dark:bg-red-900/20 dark:border-primary/30' : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              >
+                <span className="material-symbols-outlined text-xl" style={isLiked ? { fontVariationSettings: "'FILL' 1" } : {}}>favorite</span>
+                {isLiked ? t('event.liked') : t('event.like')}
+              </button>
+
+              <button
+                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success(t('event.copyLinkSuccess')); }}
+                className="flex items-center justify-center px-6 py-3 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2"
                 aria-label="Chia sẻ bài viết"
               >
-                <span className="material-symbols-outlined text-xl">share</span>
-                Chia sẻ
+                <span className="material-symbols-outlined text-xl">share</span>{t('common.share')}
               </button>
-              <button
-                onClick={handleExportPDF}
-                disabled={pdfLoading}
-                className="flex items-center justify-center px-8 py-3 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2 disabled:opacity-50"
-                aria-label="Xuất PDF"
-              >
-                <span className="material-symbols-outlined text-xl">picture_as_pdf</span>
-                {pdfLoading ? 'Đang tạo...' : 'Xuất PDF'}
-              </button>
+
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="flex items-center justify-center w-12 h-12 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  aria-label="Thêm tùy chọn"
+                >
+                  <span className="material-symbols-outlined text-xl">more_vert</span>
+                </button>
+                
+                {showMoreActions && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 overflow-hidden z-20 origin-top-right animate-in fade-in slide-in-from-top-2">
+                    <button
+                      onClick={() => { setShowMoreActions(false); toast.success(t('event.addedToCalendar')); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-lg">calendar_add_on</span>
+                      {t('event.addToCalendar')}
+                    </button>
+                    <button
+                      onClick={() => { setShowMoreActions(false); handleExportPDF(); }}
+                      disabled={pdfLoading}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                      {pdfLoading ? t('event.sending') : t('event.savePdf')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -442,36 +568,60 @@ const EventDetail: React.FC = () => {
       {/* end printRef */}
 
       {/* ──────── Comments Section ──────── */}
-      <section className="max-w-[720px] mx-auto mt-16 pt-10 border-t border-slate-200 dark:border-slate-800 print:hidden">
+      <section id="comments" className="max-w-[720px] mx-auto mt-16 pt-10 border-t border-slate-200 dark:border-slate-800 print:hidden">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">chat_bubble</span>
-          Bình luận ({comments.length})
+          {t('event.comments')} ({comments.length})
         </h2>
 
         {/* Comment input */}
-        <div className="flex gap-4 mb-8">
-          <img
-            src={user?.avatar || 'https://i.pravatar.cc/100?img=0'}
-            alt=""
-            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-          />
+        <div className="flex gap-4 mb-8 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+          {user ? (
+            <img
+              src={user.avatar || `https://ui-avatars.com/api/?name=${user.full_name || user.username || 'U'}&background=e2e8f0&color=475569`}
+              alt={user.full_name || user.username || 'User'}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 text-slate-400">
+              <span className="material-symbols-outlined">person</span>
+            </div>
+          )}
           <div className="flex-1">
+            {replyingTo && (
+              <div className="flex items-center justify-between bg-primary/10 text-primary text-xs px-3 py-1.5 rounded-lg mb-2 w-fit">
+                <span>{t('event.reply')} <strong>{replyingTo.user_name}</strong></span>
+                <button onClick={() => setReplyingTo(null)} className="hover:text-red-500 ml-2 mt-0.5">
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            )}
             <textarea
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
-              placeholder="Viết bình luận..."
+              placeholder={user ? t('event.writeComment') : t('event.loginRequired', 'Vui lòng đăng nhập để bình luận')}
+              disabled={!user}
               aria-label="Viết bình luận"
               rows={3}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none shadow-sm disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
             />
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handleAddComment}
-                disabled={commentLoading || !commentText.trim()}
-                className="px-6 py-2 bg-primary text-white font-bold text-sm rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {commentLoading ? 'Đang gửi...' : 'Gửi bình luận'}
-              </button>
+            <div className="flex justify-end mt-3">
+              {user ? (
+                <button
+                  onClick={handleAddComment}
+                  disabled={commentLoading || !commentText.trim()}
+                  className="px-6 py-2 bg-primary text-white font-bold text-sm rounded-full hover:opacity-90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 disabled:shadow-none"
+                >
+                  {commentLoading ? t('event.sending') : t('event.sendComment')}
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="px-6 py-2 bg-slate-800 dark:bg-slate-700 text-white font-bold text-sm rounded-full hover:opacity-90 transition-all shadow-md shadow-slate-900/20"
+                >
+                  {t('auth.login', 'Đăng nhập')}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -479,23 +629,73 @@ const EventDetail: React.FC = () => {
         {/* Comments list */}
         {comments.length > 0 ? (
           <div className="space-y-6">
-            {comments.map((c: any) => (
+            {comments.filter(c => !c.parent_id).map((c: any) => (
               <div key={c.id || c._id} className="flex gap-4">
                 <img
-                  src={c.avatar || 'https://i.pravatar.cc/100?img=0'}
+                  src={c.user_avatar || c.avatar || `https://ui-avatars.com/api/?name=${c.user_name || 'U'}&background=e2e8f0&color=475569`}
                   alt={c.user_name}
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-sm text-slate-900 dark:text-white">{c.user_name}</span>
-                    <span className="text-xs text-slate-400">{timeAgo(c.created_at)}</span>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">{c.user_name}</span>
+                      <span className="text-xs text-slate-400">{timeAgo(c.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{c.content}</p>
                   </div>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{c.content}</p>
-                  {c.likes != null && (
-                    <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                      <span className="material-symbols-outlined text-xs">thumb_up</span>
-                      <span>{c.likes}</span>
+                  <div className="flex items-center gap-4 mt-2 px-2">
+                    <button 
+                      onClick={() => handleLikeComment(c.id || c._id)}
+                      className={`flex items-center gap-1 text-xs font-medium transition-colors ${c.isLiked ? 'text-primary' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                      <span className="material-symbols-outlined text-sm" style={c.isLiked ? { fontVariationSettings: "'FILL' 1" } : {}}>thumb_up</span>
+                      <span>{c.likes || 0}</span>
+                    </button>
+                    <button 
+                      onClick={() => { setReplyingTo(c); document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' }); }}
+                      className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">reply</span> {t('event.reply')}
+                    </button>
+                  </div>
+                  
+                  {/* Replies */}
+                  {comments.filter(reply => reply.parent_id === (c.id || c._id)).length > 0 && (
+                    <div className="mt-4 space-y-4 pl-4 border-l-2 border-slate-100 dark:border-slate-800">
+                      {comments.filter(reply => reply.parent_id === (c.id || c._id)).map((reply: any) => (
+                        <div key={reply.id || reply._id} className="flex gap-3">
+                          <img
+                            src={reply.user_avatar || reply.avatar || `https://ui-avatars.com/api/?name=${reply.user_name || 'U'}&background=e2e8f0&color=475569`}
+                            alt={reply.user_name}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1">
+                            <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-3 border border-slate-100 dark:border-slate-800">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="font-bold text-sm text-slate-900 dark:text-white">{reply.user_name}</span>
+                                <span className="text-xs text-slate-400">{timeAgo(reply.created_at)}</span>
+                              </div>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                            </div>
+                            <div className="flex items-center gap-4 mt-2 px-2">
+                              <button 
+                                onClick={() => handleLikeComment(reply.id || reply._id)}
+                                className={`flex items-center gap-1 text-xs font-medium transition-colors ${reply.isLiked ? 'text-primary' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                              >
+                                <span className="material-symbols-outlined text-sm" style={reply.isLiked ? { fontVariationSettings: "'FILL' 1" } : {}}>thumb_up</span>
+                                <span>{reply.likes || 0}</span>
+                              </button>
+                              <button 
+                                onClick={() => { setReplyingTo(c); document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' }); }}
+                                className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-sm">reply</span> {t('event.reply')}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -503,7 +703,10 @@ const EventDetail: React.FC = () => {
             ))}
           </div>
         ) : (
-          <p className="text-center text-slate-400 py-8">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+          <div className="text-center bg-slate-50 dark:bg-slate-800/50 py-12 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 mb-3">forum</span>
+            <p className="text-slate-500 dark:text-slate-400">{t('event.noComments')}</p>
+          </div>
         )}
       </section>
 
@@ -511,9 +714,8 @@ const EventDetail: React.FC = () => {
       {relatedPosts.length > 0 && (
         <section className="mt-20 pt-10 border-t border-slate-200 dark:border-slate-800 print:hidden">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Có thể bạn quan tâm</h2>
-            <Link to="/featured-events" className="text-primary font-semibold hover:underline text-sm flex items-center gap-1">
-              Xem thêm <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('event.youMayLike')}</h2>
+            <Link to="/featured-events" className="text-primary font-semibold hover:underline text-sm flex items-center gap-1">{t('common.viewMore')} <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </div>
 
@@ -534,8 +736,8 @@ const EventDetail: React.FC = () => {
                   {related.title}
                 </h3>
                 <div className="flex items-center gap-3 text-xs text-slate-500 mt-2">
-                  <span>{formatDate(related.published_at || related.start_date)}</span>
-                  {related.read_time && <span>{related.read_time} phút đọc</span>}
+                  <span>{formatPeriod(related.start_date, related.end_date) || formatDate(related.published_at)}</span>
+                  {related.read_time && <span>{related.read_time} {t('event.readTime')}</span>}
                 </div>
               </Link>
             ))}

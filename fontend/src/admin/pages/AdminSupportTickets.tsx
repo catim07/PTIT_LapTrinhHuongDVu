@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supportService } from '../../services/supportService';
 import { toast } from '../../components/Toast/toastEvent';
 import { useAppSelector } from '../../store';
@@ -27,6 +28,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 const AdminSupportTickets: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAppSelector(s => s.auth);
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<any[]>([]);
@@ -54,7 +56,7 @@ const AdminSupportTickets: React.FC = () => {
       setStats(statsRes || {});
       setTickets(listRes?.data || []);
       setTotal(listRes?.meta?.total || 0);
-    } catch (err: any) {
+    } catch {
       toast.error('Lỗi tải ticket');
     } finally {
       setLoading(false);
@@ -99,7 +101,9 @@ const AdminSupportTickets: React.FC = () => {
     try {
       const res = await supportService.detail(id);
       if (res) setDetailTicket(res);
-    } catch {}
+    } catch {
+      return;
+    }
   };
 
   const submitReply = async () => {
@@ -355,6 +359,9 @@ const AdminSupportTickets: React.FC = () => {
                        )}
                        {detailTicket.status !== 'resolved' && (
                          <button onClick={() => handleUpdateStatus('resolved')} className={cls.btnSecondary + ' !py-1 !text-xs !text-green-600'}>Đánh dấu Resolved</button>
+                       )}
+                       {detailTicket.status !== 'closed' && (
+                         <button onClick={() => handleUpdateStatus('closed')} className={cls.btnSecondary + ' !py-1 !text-xs !text-slate-600'}>{t('adminSupport.closeTicket')}</button>
                        )}
                      </div>
                      <button onClick={submitReply} className={cls.btnPrimary}>Gửi tin nhắn</button>

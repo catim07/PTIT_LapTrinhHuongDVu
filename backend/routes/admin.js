@@ -204,11 +204,16 @@ router.delete('/hot-deals/:id', auth, admin, bc.deleteHotDeal);
 router.get('/featured-collections', bc.listFeaturedCollections);
 router.get('/delivery-slots', bc.listDeliverySlots);
 
-// Roles & membership tiers
-router.get('/roles', auth, admin, async (_req, res) => {
+// Roles & membership tiers — super_admin only
+router.get('/roles', auth, admin, async (req, res) => {
   try {
+    // Only super_admin can list all roles
+    const { isSuperAdmin: checkSA } = await import('../services/rbacService.js');
+    if (!checkSA(req.user)) {
+      return res.status(403).json({ success: false, message: 'Forbidden: super admin access required' });
+    }
     await ensureRbacSeed();
-    const data = await Role.find({ is_active: true }).sort({ role_id: 1, created_at: 1 });
+    const data = await Role.find({ is_active: true }).sort({ level: 1, role_id: 1, created_at: 1 });
     return res.json({ success: true, data });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

@@ -1,22 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../store';
 
 const Account: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAppSelector(state => state.auth);
 
   if (!user) return null;
 
   const quickLinks = [
-    { to: '/account/orders', icon: 'shopping_bag', label: 'Đơn hàng', desc: 'Xem lịch sử mua hàng' },
-    { to: '/account/addresses', icon: 'location_on', label: 'Địa chỉ', desc: 'Quản lý địa chỉ giao hàng' },
-    { to: '/account/payments', icon: 'credit_card', label: 'Thanh toán', desc: 'Phương thức thanh toán' },
-    { to: '/account/coupons', icon: 'sell', label: 'Voucher', desc: 'Mã giảm giá của tôi' },
-    { to: '/account/loyalty', icon: 'military_tech', label: 'Điểm thưởng', desc: `${(user.lotte_points || 0).toLocaleString('vi-VN')} điểm hiện có` },
-    { to: '/account/reviews', icon: 'star', label: 'Đánh giá', desc: 'Đánh giá sản phẩm' },
-    { to: '/account/notifications', icon: 'notifications', label: 'Thông báo', desc: 'Thông báo và cập nhật' },
-    { to: '/account/support', icon: 'chat_bubble', label: 'Hỗ trợ', desc: 'Hỗ trợ khách hàng' },
-    { to: '/account/settings', icon: 'settings', label: 'Cài đặt', desc: 'Cài đặt tài khoản' },
+    { to: '/account/orders', icon: 'shopping_bag', label: t('account.orders'), desc: t('account.ordersDesc') },
+    { to: '/account/addresses', icon: 'location_on', label: t('account.addresses'), desc: t('account.addressesDesc') },
+    { to: '/account/payments', icon: 'credit_card', label: t('account.payment'), desc: t('account.paymentDesc') },
+    { to: '/account/coupons', icon: 'sell', label: t('account.voucher'), desc: t('account.voucherDesc') },
+    { to: '/account/loyalty', icon: 'military_tech', label: t('account.loyalty'), desc: t('account.loyaltyDesc', { points: (user.lotte_points || 0).toLocaleString('vi-VN') }) },
+    { to: '/account/reviews', icon: 'star', label: t('account.reviews'), desc: t('account.reviewsDesc') },
+    { to: '/account/notifications', icon: 'notifications', label: t('account.notifications'), desc: t('account.notificationsDesc') },
+    { to: '/account/support', icon: 'chat_bubble', label: t('account.support'), desc: t('account.supportDesc') },
+    { to: '/account/settings', icon: 'settings', label: t('account.settings'), desc: t('account.settingsDesc') },
   ];
 
   return (
@@ -40,15 +42,15 @@ const Account: React.FC = () => {
             </span>
             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-xs font-bold">
               <span className="material-symbols-outlined text-[14px]">military_tech</span>
-              {(user.lotte_points || 0).toLocaleString('vi-VN')} điểm
+              {(user.lotte_points || 0).toLocaleString('vi-VN')} {t('account.points')}
             </span>
           </div>
           <div className="mt-4 flex gap-3 justify-center sm:justify-start">
             <Link to="/account/profile" className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors">
-              Chỉnh sửa hồ sơ
+              {t('account.editProfile')}
             </Link>
             <Link to="/account/settings" className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-              Cài đặt
+              {t('account.settingsBtn')}
             </Link>
           </div>
         </div>
@@ -56,7 +58,7 @@ const Account: React.FC = () => {
 
       {/* Quick Links Grid */}
       <div>
-        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Quản lý tài khoản</h3>
+        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">{t('account.manageAccount')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
           {quickLinks.map(link => (
             <Link

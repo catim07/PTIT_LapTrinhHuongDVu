@@ -43,7 +43,6 @@ const importOrderSchema = new mongoose.Schema({
   updated_by: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-importOrderSchema.index({ order_code: 1 });
 importOrderSchema.index({ branch_id: 1, status: 1, created_at: -1 });
 importOrderSchema.index({ supplier_id: 1, created_at: -1 });
 

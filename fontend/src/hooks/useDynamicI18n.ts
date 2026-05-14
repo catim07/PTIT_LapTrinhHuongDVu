@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
  * 
  * Logic:
  * If current language is English ('en'), it attempts to read `field_en` first.
- * If `field_en` is missing or language is 'vi', it falls back to the original `field`.
+ * If current language is Japanese ('ja'), it attempts to read `field_ja` first.
+ * If the localized field is missing or language is 'vi', it falls back to the original `field`.
  */
 export const useDynamicI18n = () => {
   const { i18n } = useTranslation();
-  const currentLang = i18n.language; // 'vi' or 'en'
+  const currentLang = i18n.language; // 'vi' | 'en' | 'ja'
 
   const tDynamic = (item: any, field: string) => {
     if (!item) return '';
@@ -19,6 +20,14 @@ export const useDynamicI18n = () => {
       const fieldEn = `${field}_en`;
       if (item[fieldEn] && item[fieldEn].trim() !== '') {
         return item[fieldEn];
+      }
+    }
+
+    // If Japanese, look for `{field}_ja`
+    if (currentLang === 'ja') {
+      const fieldJa = `${field}_ja`;
+      if (item[fieldJa] && item[fieldJa].trim() !== '') {
+        return item[fieldJa];
       }
     }
 

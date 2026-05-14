@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { ensureRbacSeed, getPermissionsForUser } from '../services/rbacService.js';
+import { ensureRbacSeed, getPermissionsForUser, isSuperAdmin } from '../services/rbacService.js';
+import { logActivity } from '../services/auditService.js';
 
 let rbacSeeded = false;
 
@@ -87,3 +88,47 @@ export const requirePermission = (permissionKey) => {
     }
   };
 };
+
+/**
+ * Middleware that restricts access to super_admin role ONLY.
+ * Logs unauthorized access attempts for audit trail.
+ */
+export const requireSuperAdmin = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (isSuperAdmin(req.user)) {
+      return next();
+    }
+
+    // Log the unauthorized access attempt
+    try {
+      await logActivity({
+        userId: req.userId,
+        userName: req.user?.full_name || req.user?.username || 'Unknown',
+        action: 'ACCESS_DENIED',
+        entity: 'roles_permissions',
+        entityId: null,
+        details: {
+          attempted_path: req.originalUrl,
+          method: req.method,
+          role_id: req.user.role_id,
+          role_key: req.user.role_key,
+        },
+        ip: req.ip,
+      });
+    } catch (_auditErr) {
+      // Audit logging should never block the response
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden: super admin access required',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || 'Super admin check failed' });
+  }
+};
+

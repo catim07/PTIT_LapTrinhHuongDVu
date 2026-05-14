@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { orderService } from '../services/orderService';
 import type { Order, UserAddress } from '../types';
@@ -6,6 +7,7 @@ import type { Order, UserAddress } from '../types';
 const formatMoney = (value?: number | null) => Number(value ?? 0).toLocaleString('vi-VN');
 
 const PaymentSuccess: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const routeState = (location.state as { order?: Order; address?: UserAddress; transactionId?: string | null }) || {};
@@ -57,8 +59,8 @@ const PaymentSuccess: React.FC = () => {
         <div className="animate-pulse flex space-x-4 mb-4">
           <div className="rounded-full bg-slate-200 h-16 w-16"></div>
         </div>
-        <p className="text-slate-500 mb-6">Đang tải thông tin đơn hàng...</p>
-        <Link to="/" className="text-primary hover:underline font-medium">Bấm vào đây để về trang chủ nếu quá lâu</Link>
+        <p className="text-slate-500 mb-6">{t('paymentSuccess.loading')}</p>
+        <Link to="/" className="text-primary hover:underline font-medium">{t('paymentSuccess.goHomeTimeout')}</Link>
       </div>
     );
   }
@@ -73,8 +75,8 @@ const PaymentSuccess: React.FC = () => {
               <span className="material-symbols-outlined text-6xl">check_circle</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Thanh toán thành công</h1>
-            <p className="text-slate-600 dark:text-slate-400 mb-8 text-lg">Cảm ơn bạn đã mua sắm!</p>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">{t('paymentSuccess.title')}</h1>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 text-lg">{t('paymentSuccess.thanks')}</p>
 
             {error && (
               <div className="w-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 text-sm text-amber-700 dark:text-amber-300">
@@ -84,11 +86,9 @@ const PaymentSuccess: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 w-full mb-12">
               <Link to="/account/orders" className="flex-1 bg-primary text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                <span className="material-symbols-outlined">receipt_long</span> Xem đơn hàng
-              </Link>
+                <span className="material-symbols-outlined">receipt_long</span>{t('paymentSuccess.viewOrder')}</Link>
               <Link to="/products" className="flex-1 bg-primary/10 text-primary font-bold py-4 rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                <span className="material-symbols-outlined">shopping_cart</span> Tiếp tục mua sắm
-              </Link>
+                <span className="material-symbols-outlined">shopping_cart</span>{t('paymentSuccess.continueShopping')}</Link>
             </div>
           </div>
         </div>
@@ -110,14 +110,14 @@ const PaymentSuccess: React.FC = () => {
             <span className="material-symbols-outlined text-6xl">check_circle</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Thanh toán thành công</h1>
-          <p className="text-slate-600 dark:text-slate-400 mb-8 text-lg">Cảm ơn bạn đã mua sắm! Đơn hàng của bạn đang được xử lý.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">{t('paymentSuccess.title')}</h1>
+          <p className="text-slate-600 dark:text-slate-400 mb-8 text-lg">{t('paymentSuccess.processing')}</p>
 
           <div className="w-full bg-white dark:bg-white/5 rounded-xl border border-primary/5 p-6 shadow-sm mb-8">
-            <h3 className="text-left font-bold text-lg mb-4 border-b border-primary/5 pb-2">Chi tiết đơn hàng</h3>
+            <h3 className="text-left font-bold text-lg mb-4 border-b border-primary/5 pb-2">{t('paymentSuccess.details')}</h3>
             <div className="space-y-4 text-left">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500 dark:text-slate-400">Mã đơn hàng</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('paymentSuccess.orderId')}</span>
                 <span className="font-semibold text-primary">#{orderId}</span>
               </div>
 
@@ -128,7 +128,7 @@ const PaymentSuccess: React.FC = () => {
 
               {(order?.subtotal != null || order?.pricing_breakdown?.subtotal != null) && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Tạm tính</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t('paymentSuccess.subtotal')}</span>
                   <span className="font-medium">{formatMoney(order?.subtotal ?? order?.pricing_breakdown?.subtotal)}đ</span>
                 </div>
               )}
@@ -172,11 +172,9 @@ const PaymentSuccess: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 w-full mb-12">
             <Link to={`/account/orders/${orderId}`} className="flex-1 bg-primary text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-              <span className="material-symbols-outlined">receipt_long</span> Xem đơn hàng
-            </Link>
+              <span className="material-symbols-outlined">receipt_long</span>{t('paymentSuccess.viewOrder')}</Link>
             <Link to="/products" className="flex-1 bg-primary/10 text-primary font-bold py-4 rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-              <span className="material-symbols-outlined">shopping_cart</span> Tiếp tục mua sắm
-            </Link>
+              <span className="material-symbols-outlined">shopping_cart</span>{t('paymentSuccess.continueShopping')}</Link>
           </div>
         </div>
       </div>

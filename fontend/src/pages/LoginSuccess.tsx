@@ -30,7 +30,10 @@ const sanitizeNextPath = (raw: string | null): string => {
   }
 };
 
+import { useTranslation } from 'react-i18next';
+
 const LoginSuccess = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
@@ -71,7 +74,7 @@ const LoginSuccess = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-700">
-      <p className="text-sm font-medium">Dang xu ly dang nhap Facebook...</p>
+      <p className="text-sm font-medium">{t('auth.processingSocialLogin', 'Đang xử lý đăng nhập...')}</p>
     </div>
   );
 };

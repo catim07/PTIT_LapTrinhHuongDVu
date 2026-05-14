@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../store';
 import { socket } from '../services/socket';
 import { toast } from '../components/Toast/toastEvent';
@@ -8,8 +9,9 @@ interface FamilyCartItem { id:string; name:string; image:string; price:number; q
 interface FamilyMember { userId:string; name:string; joinedAt:string; }
 
 const SharedFamilyCart: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAppSelector(s => s.auth);
-  const { currentBranchId } = useBranchData();
+  useBranchData();
   const [roomCode, setRoomCode] = useState('');
   const [joined, setJoined] = useState(false);
   const [items, setItems] = useState<FamilyCartItem[]>([]);
@@ -18,7 +20,7 @@ const SharedFamilyCart: React.FC = () => {
   const [searchQ, setSearchQ] = useState('');
   const { availableProducts } = useBranchData();
 
-  const userName = user?.name || user?.email || 'Guest';
+  const userName = user?.full_name || user?.email || 'Guest';
   const userId = String(user?.id || user?._id || Date.now());
 
   // Generate room code
@@ -118,20 +120,20 @@ const SharedFamilyCart: React.FC = () => {
     <main className="max-w-3xl mx-auto px-4 py-12 mb-20">
       <div className="text-center mb-10">
         <span className="material-symbols-outlined !text-6xl text-indigo-500 mb-3 block">family_restroom</span>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white">Giỏ Hàng Gia Đình</h1>
-        <p className="text-slate-500 mt-2">Cùng gia đình thêm sản phẩm vào chung một giỏ hàng — đồng bộ realtime</p>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white">{t('familyCart.title')}</h1>
+        <p className="text-slate-500 mt-2">{t('familyCart.desc')}</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-lg border border-slate-100 text-center">
           <span className="material-symbols-outlined !text-5xl text-green-500 mb-3 block">add_circle</span>
-          <h3 className="text-lg font-black mb-2">Tạo phòng mới</h3>
-          <p className="text-sm text-slate-400 mb-6">Tạo mã phòng và chia sẻ cho thành viên</p>
-          <button onClick={generateCode} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">Tạo giỏ hàng</button>
+          <h3 className="text-lg font-black mb-2">{t('familyCart.createNew')}</h3>
+          <p className="text-sm text-slate-400 mb-6">{t('familyCart.createDesc')}</p>
+          <button onClick={generateCode} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">{t('familyCart.createCart')}</button>
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-lg border border-slate-100 text-center">
           <span className="material-symbols-outlined !text-5xl text-blue-500 mb-3 block">group_add</span>
-          <h3 className="text-lg font-black mb-2">Tham gia phòng</h3>
-          <p className="text-sm text-slate-400 mb-4">Nhập mã phòng được chia sẻ</p>
+          <h3 className="text-lg font-black mb-2">{t('familyCart.joinRoom')}</h3>
+          <p className="text-sm text-slate-400 mb-4">{t('familyCart.joinDesc')}</p>
           <input value={inputCode} onChange={e => setInputCode(e.target.value.toUpperCase())} placeholder="VD: LOTTE-ABC123" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-mono font-bold text-lg mb-4 outline-none focus:border-indigo-400"/>
           <button onClick={() => inputCode && joinRoom(inputCode)} disabled={!inputCode} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-40">Tham gia</button>
         </div>
@@ -145,7 +147,7 @@ const SharedFamilyCart: React.FC = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 text-white mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2"><span className="material-symbols-outlined">family_restroom</span>Giỏ Hàng Gia Đình</h1>
+          <h1 className="text-2xl font-black flex items-center gap-2"><span className="material-symbols-outlined">family_restroom</span>{t('familyCart.title')}</h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="bg-white/20 px-3 py-1 rounded-lg font-mono font-bold text-sm">{roomCode}</span>
             <button onClick={copyCode} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm font-bold transition-colors">📋 Copy</button>
@@ -161,7 +163,7 @@ const SharedFamilyCart: React.FC = () => {
             {members.length === 0 && <div className="w-9 h-9 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-sm font-bold">{userName.charAt(0).toUpperCase()}</div>}
           </div>
           <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-lg">{Math.max(members.length, 1)} thành viên</span>
-          <button onClick={leaveRoom} className="bg-red-500/80 hover:bg-red-500 px-4 py-2 rounded-xl text-sm font-bold transition-colors">Rời phòng</button>
+          <button onClick={leaveRoom} className="bg-red-500/80 hover:bg-red-500 px-4 py-2 rounded-xl text-sm font-bold transition-colors">{t('familyCart.leaveRoom')}</button>
         </div>
       </div>
 
@@ -173,7 +175,7 @@ const SharedFamilyCart: React.FC = () => {
               <h2 className="font-bold text-lg">{items.length} sản phẩm · {fmt(total)}₫</h2>
             </div>
             {items.length === 0 ? (
-              <div className="p-12 text-center text-slate-400"><span className="text-4xl block mb-2">🛒</span>Giỏ hàng trống — thêm sản phẩm bên dưới</div>
+              <div className="p-12 text-center text-slate-400"><span className="text-4xl block mb-2">🛒</span>{t('familyCart.emptyCart')}</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {items.map(item => (
@@ -214,11 +216,11 @@ const SharedFamilyCart: React.FC = () => {
         {/* Sidebar: members */}
         <div>
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-100 p-5">
-            <h3 className="font-black text-lg mb-4 flex items-center gap-2"><span className="material-symbols-outlined text-indigo-500">group</span>Thành viên</h3>
+            <h3 className="font-black text-lg mb-4 flex items-center gap-2"><span className="material-symbols-outlined text-indigo-500">group</span>{t('familyCart.members')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl">
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">{userName.charAt(0).toUpperCase()}</div>
-                <div><p className="font-bold text-sm">{userName}</p><p className="text-xs text-slate-400">Bạn</p></div>
+                <div><p className="font-bold text-sm">{userName}</p><p className="text-xs text-slate-400">{t('familyCart.you')}</p></div>
               </div>
               {members.filter(m => m.userId !== userId).map((m, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
@@ -228,7 +230,7 @@ const SharedFamilyCart: React.FC = () => {
               ))}
             </div>
             <div className="mt-6 p-4 bg-slate-50 rounded-xl text-center">
-              <p className="text-xs text-slate-500 mb-2">Chia sẻ mã phòng</p>
+              <p className="text-xs text-slate-500 mb-2">{t('familyCart.shareCode')}</p>
               <p className="font-mono font-black text-xl text-indigo-600">{roomCode}</p>
             </div>
           </div>

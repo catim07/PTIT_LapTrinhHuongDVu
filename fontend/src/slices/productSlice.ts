@@ -3,6 +3,7 @@ import type { Product, BranchProduct, Category, EventPost } from '../types';
 import { dataService } from '../services/dataService';
 import { normalizeBranchProducts, normalizeCategories, normalizeProducts } from '../utils/productNormalization';
 import { deriveCategoryLookup, normalizeProducts as normalizeShopProducts } from '../utils/normalizeProduct';
+import i18n from '../i18n';
 
 export const loadProductsData = createAsyncThunk(
   'product/loadProductsData',
@@ -28,7 +29,7 @@ export const loadProductsData = createAsyncThunk(
       const shop = shopProductMap.get(key);
       return {
         ...product,
-        categoryShop: shop?.categoryShop || product?.categoryShop || product?.category_name || 'Khac',
+        categoryShop: shop?.categoryShop || product?.categoryShop || product?.category_name || i18n.t('common.other'),
       };
     });
 
@@ -37,7 +38,7 @@ export const loadProductsData = createAsyncThunk(
       const shop = shopProductMap.get(key);
       return {
         ...bp,
-        categoryShop: shop?.categoryShop || bp?.categoryShop || bp?.category_name || 'Khac',
+        categoryShop: shop?.categoryShop || bp?.categoryShop || bp?.category_name || i18n.t('common.other'),
       };
     });
 

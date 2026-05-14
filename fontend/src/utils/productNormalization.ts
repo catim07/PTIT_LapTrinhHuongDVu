@@ -1,3 +1,6 @@
+import i18n from '../i18n';
+import { resolveImageUrl, fallbackProductImage } from './imageUrl';
+
 const toId = (value: any): string => {
   if (value === undefined || value === null) return '';
   if (typeof value === 'object' && value !== null) {
@@ -25,10 +28,10 @@ const toBool = (value: any, fallback = false): boolean => {
 
 const toImageArray = (raw: any): string[] => {
   if (Array.isArray(raw.images)) {
-    return raw.images.map((img: any) => String(img)).filter(Boolean);
+    return raw.images.map((img: any) => resolveImageUrl(String(img))).filter(Boolean);
   }
-  if (typeof raw.image === 'string' && raw.image.trim()) return [raw.image.trim()];
-  if (typeof raw.thumbnail === 'string' && raw.thumbnail.trim()) return [raw.thumbnail.trim()];
+  if (typeof raw.image === 'string' && raw.image.trim()) return [resolveImageUrl(raw.image.trim())];
+  if (typeof raw.thumbnail === 'string' && raw.thumbnail.trim()) return [resolveImageUrl(raw.thumbnail.trim())];
   return [];
 };
 
@@ -37,8 +40,11 @@ export const normalizeProduct = (raw: any): any => {
   const categoryId = raw?.category_id !== undefined && raw?.category_id !== null
     ? toId(raw.category_id)
     : '';
-  const categoryShop = raw?.category?.name || raw?.categoryShop || raw?.category_name || 'Khac';
-  const image = toImageArray(raw)[0] || 'https://via.placeholder.com/600x600?text=Product';
+  const supplierId = raw?.supplier_id !== undefined && raw?.supplier_id !== null
+    ? toId(raw.supplier_id)
+    : '';
+  const categoryShop = raw?.category?.name || raw?.categoryShop || raw?.category_name || i18n.t('common.other');
+  const image = toImageArray(raw)[0] || fallbackProductImage;
   const price = toNumber(raw?.price, 0);
   const originalPrice = toNumber(raw?.original_price, price);
   const stock = toNumber(raw?.stock, 0);
@@ -55,6 +61,7 @@ export const normalizeProduct = (raw: any): any => {
     _id: raw?._id || id || undefined,
     product_id: raw?.product_id ? toId(raw.product_id) : id,
     category_id: categoryId,
+    supplier_id: supplierId,
     images: toImageArray(raw),
     image,
     categoryShop,
@@ -96,8 +103,11 @@ export const normalizeBranchProduct = (raw: any): any => {
   const productId = toId(raw?.product_id || raw?.product?.id || raw?.product?._id);
   const branchId = toId(raw?.branch_id);
   const normalizedProduct = raw?.product ? normalizeProduct(raw.product) : null;
-  const categoryShop = raw?.categoryShop || raw?.category_name || normalizedProduct?.categoryShop || 'Khac';
-  const image = normalizedProduct?.image || toImageArray(raw)[0] || 'https://via.placeholder.com/600x600?text=Product';
+  const supplierId = raw?.supplier_id !== undefined && raw?.supplier_id !== null && raw?.supplier_id !== ''
+    ? toId(raw.supplier_id)
+    : (normalizedProduct?.supplier_id || '');
+  const categoryShop = raw?.categoryShop || raw?.category_name || normalizedProduct?.categoryShop || i18n.t('common.other');
+  const image = normalizedProduct?.image || toImageArray(raw)[0] || fallbackProductImage;
   const stock = toNumber(raw?.stock, 0);
   const price = toNumber(raw?.price, 0);
   const originalPrice = toNumber(raw?.original_price, price);
@@ -115,6 +125,7 @@ export const normalizeBranchProduct = (raw: any): any => {
     product_id: productId,
     branch_id: branchId,
     category_id: raw?.category_id ? toId(raw.category_id) : (normalizedProduct?.category_id || ''),
+    supplier_id: supplierId,
     categoryShop,
     is_active: toBool(raw?.is_active, toBool(raw?.is_available, true)),
     is_available: toBool(raw?.is_available, toBool(raw?.is_active, true)),

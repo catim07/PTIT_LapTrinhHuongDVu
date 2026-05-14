@@ -1,5 +1,23 @@
 import axios, { AxiosError } from 'axios';
 
+const SUPPORTED_LOCALES = ['vi', 'en', 'ja'];
+
+const normalizeLocale = (value: string | null | undefined) => {
+  if (!value) return null;
+  const token = String(value).trim().toLowerCase();
+  if (!token) return null;
+  const primary = token.split(',')[0].split('-')[0].trim();
+  return SUPPORTED_LOCALES.includes(primary) ? primary : null;
+};
+
+const getPreferredLocale = () => {
+  if (typeof window === 'undefined') return 'vi';
+  const saved = normalizeLocale(window.localStorage.getItem('lotte_language'));
+  if (saved) return saved;
+  const navigatorLang = normalizeLocale(window.navigator?.language);
+  return navigatorLang || 'vi';
+};
+
 // Only load mock data if explicitly enabled via env flag
 const USE_MOCK_FALLBACK = import.meta.env.VITE_USE_MOCK_FALLBACK === 'true';
 let mockData: any = null;
@@ -11,7 +29,9 @@ if (USE_MOCK_FALLBACK) {
   }
 }
 
-const getMockDataForUrl = (url: string = '', method: string = 'get'): any => {
+// @ts-expect-error Kept for mock fallback mode (VITE_USE_MOCK_FALLBACK)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _getMockDataForUrl = (url: string = '', method: string = 'get'): any => {
   const urlLower = url.toLowerCase();
   
   if (method === 'post' || method === 'put' || method === 'delete' || method === 'patch') {
@@ -186,6 +206,14 @@ httpClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const locale = getPreferredLocale();
+    if (config.headers) {
+      config.headers['Accept-Language'] = locale;
+    }
+    if (String(config.method || 'get').toLowerCase() === 'get') {
+      config.params = { ...(config.params || {}), lang: locale };
+    }
     
     // Debug: log actual URL for inventory-batches to catch double /api
     if (String(config.url).includes('inventory-batches')) {
@@ -296,7 +324,7 @@ httpClient.interceptors.response.use(
         originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
 
         return httpClient.request(originalRequest);
-      } catch (err) {
+      } catch (err: any) {
         processQueue(err as AxiosError, null);
         localStorage.removeItem('lottemart_token');
         localStorage.removeItem('lottemart_refresh_token');

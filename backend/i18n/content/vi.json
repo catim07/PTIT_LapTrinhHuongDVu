@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "product": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "category": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "banner": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "hotDeal": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "featuredCollection": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "promotion": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "coupon": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "event": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "notification": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "branch": { "byId": {}, "bySlug": {}, "byCode": {}, "byName": {} },
+    "membershipTier": {
+      "byId": {},
+      "bySlug": {},
+      "byCode": {},
+      "byName": {
+        "Bronze": { "level": "\u0110\u1ed3ng" },
+        "Silver": { "level": "B\u1ea1c" },
+        "Gold": { "level": "V\u00e0ng" },
+        "Diamond": { "level": "Kim C\u01b0\u01a1ng" }
+      }
+    }
+  },
+  "status": {
+    "order": {
+      "PENDING": "Ch\u1edd x\u1eed l\u00fd",
+      "CONFIRMED": "\u0110\u00e3 x\u00e1c nh\u1eadn",
+      "PROCESSING": "\u0110ang chu\u1ea9n b\u1ecb",
+      "SHIPPING": "\u0110ang v\u1eadn chuy\u1ec3n",
+      "DELIVERED": "\u0110\u00e3 giao h\u00e0ng",
+      "COMPLETED": "Ho\u00e0n t\u1ea5t",
+      "CANCELLED": "\u0110\u00e3 h\u1ee7y",
+      "RETURNED": "\u0110\u00e3 ho\u00e0n tr\u1ea3",
+      "REFUNDED": "\u0110\u00e3 ho\u00e0n ti\u1ec1n"
+    },
+    "promotion": {
+      "draft": "Nh\u00e1p",
+      "active": "\u0110ang ho\u1ea1t \u0111\u1ed9ng",
+      "scheduled": "\u0110\u00e3 l\u00ean l\u1ecbch",
+      "expired": "\u0110\u00e3 h\u1ebft h\u1ea1n",
+      "paused": "T\u1ea1m d\u1eebng"
+    },
+    "coupon": {
+      "draft": "Nh\u00e1p",
+      "active": "\u0110ang ho\u1ea1t \u0111\u1ed9ng",
+      "scheduled": "\u0110\u00e3 l\u00ean l\u1ecbch",
+      "expired": "\u0110\u00e3 h\u1ebft h\u1ea1n",
+      "paused": "T\u1ea1m d\u1eebng"
+    }
+  },
+  "labels": {
+    "badges": {
+      "H\u1ebft h\u1ea1n": "H\u1ebft h\u1ea1n",
+      "S\u1eafp h\u1ebft h\u1ea1n": "S\u1eafp h\u1ebft h\u1ea1n",
+      "T\u1ed3n th\u1ea5p": "T\u1ed3n th\u1ea5p",
+      "T\u1ed3n kho th\u1ea5p": "T\u1ed3n kho th\u1ea5p",
+      "Nh\u1eadp m\u1edbi": "Nh\u1eadp m\u1edbi",
+      "Best seller": "B\u00e1n ch\u1ea1y",
+      "N\u1ed5i b\u1eadt": "N\u1ed5i b\u1eadt",
+      "expiryIn": "T\u1edbi h\u1ea1n: {{days}} ng\u00e0y",
+      "remainingIn": "C\u00f2n {{days}} ng\u00e0y"
+    }
+  },
+  "messages": {}
+}

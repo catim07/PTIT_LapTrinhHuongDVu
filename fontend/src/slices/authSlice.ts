@@ -94,13 +94,40 @@ const loadState = (): AuthState => {
 };
 
 const getErrorMessage = (error: any) => {
-  return (
+  const message =
     error?.response?.data?.message ||
     error?.response?.data?.error ||
     error?.message ||
-    'Authentication failed'
-  );
+    'Authentication failed';
+  const code = error?.response?.data?.code || '';
+  // Append provider collision code so UI can detect and display special guidance
+  if (code && (code.startsWith('PROVIDER_COLLISION') || code.startsWith('USE_'))) {
+    return `[${code}] ${message}`;
+  }
+  return message;
 };
+
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email: string, { rejectWithValue }) => {
+    try {
+      return await authService.forgotPassword(email);
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async (payload: { email: string; otp: string; newPassword: string }, { rejectWithValue }) => {
+    try {
+      return await authService.resetPassword(payload);
+    } catch (error: any) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
 
 export const login = createAsyncThunk(
   'auth/login',

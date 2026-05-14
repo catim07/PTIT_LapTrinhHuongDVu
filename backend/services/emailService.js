@@ -171,7 +171,30 @@ export const sendOrderSuccessEmail = async (user, order) => {
   return sendMail({ to: email, subject, text, html });
 };
 
+export const sendNotificationSettingsEmail = async (user, changedSettings) => {
+  if (!user?.email) return { skipped: true };
+
+  const subject = `Cập nhật tùy chọn thông báo - Lotte Mart`;
+  const changedListHtml = changedSettings.map(k => `<li style="padding:4px 0;">${k.key}: <b style="color:${k.value ? '#15803d' : '#b91c1c'};">${k.value ? 'Bật' : 'Tắt'}</b></li>`).join('');
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;max-width:640px;margin:0 auto;">
+      <h2 style="color:#dc2626;">Cập nhật tùy chọn thông báo</h2>
+      <p>Xin chào ${user?.full_name || user?.username || 'Quý khách'},</p>
+      <p>Các tùy chọn thông báo của bạn vừa được cập nhật thành công:</p>
+      <ul style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 14px 14px 30px;">
+        ${changedListHtml}
+      </ul>
+      <p style="margin-top:20px;color:#4b5563;font-size:13px;">Nếu bạn không thực hiện thay đổi này, vui lòng kiểm tra lại tài khoản.</p>
+    </div>
+  `;
+  const text = `Tùy chọn thông báo của bạn vừa được cập nhật.`;
+
+  return sendMail({ to: user.email, subject, text, html });
+};
+
 export default {
   sendOtpEmail,
   sendOrderSuccessEmail,
+  sendNotificationSettingsEmail,
 };

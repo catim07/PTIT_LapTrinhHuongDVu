@@ -1,6 +1,7 @@
 // src/pages/ProductDetail.tsx
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch, useAppSelector } from '../store';
 import { addToCartAsync } from '../slices/cartSlice';
@@ -13,8 +14,11 @@ import { toast } from '../components/Toast/toastEvent';
 import { productService } from '../services/productService';
 import { dataService } from '../services/dataService';
 import { saveViewHistory } from '../services/viewHistoryService';
+import i18n from '../i18n';
+import { resolveImageUrl, fallbackProductImage } from '../utils/imageUrl';
 
 const ProductDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const productId = id || '0';
 
@@ -220,7 +224,7 @@ const ProductDetail: React.FC = () => {
     saveViewHistory(
       {
         id: resolvedProductId,
-        name: String(product.name || 'San pham'),
+        name: String(product.name || i18n.t('common.product')),
         image: String(product.images?.[0] || product.thumbnail || ''),
         price: Number(branchProduct?.price ?? product.price ?? 0),
         branch_product_id: resolvedBranchProductId || undefined,
@@ -271,7 +275,7 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!currentBranchId) {
-      toast.error('Vui lòng chọn chi nhánh trước khi mua hàng');
+      toast.error(t('common.selectBranchFirst'));
       return false;
     }
     
@@ -291,28 +295,31 @@ const ProductDetail: React.FC = () => {
       return false;
     }
     
+    const safeQuantity = clampQuantity(quantity, true);
+    if (safeQuantity !== quantity) setQuantity(safeQuantity);
+
     try {
       await dispatch(addToCartAsync({
         branchId: currentBranchId,
         branch_product_id: String(branchProduct.id || branchProduct._id),
         price: branchProduct.price,
         unit_price: branchProduct.price,
-        quantity,
+        quantity: safeQuantity,
         product_name: product.name,
-        product_image: product.images?.[0] || '',
+        product_image: resolveImageUrl(product.images?.[0] || product.thumbnail || ''),
         branchProduct: { ...branchProduct, product: product as any } as any,
       })).unwrap();
-      toast.success(`Đã thêm "${product.name}" (${quantity} sản phẩm) vào giỏ hàng!`);
+      toast.success(t('cart.addedToCart', { name: product.name }));
       return true;
     } catch (err: any) {
-      toast.error(typeof err === 'string' ? err : (err?.message || 'Lỗi thêm vào giỏ hàng'));
+      toast.error(typeof err === 'string' ? err : (err?.message || t('common.addToCartError')));
       return false;
     }
   };
 
   const handleBuyNow = () => {
     if (!currentBranchId) {
-      toast.error('Vui lòng chọn chi nhánh trước khi mua hàng');
+      toast.error(t('common.selectBranchFirst'));
       return;
     }
     
@@ -331,6 +338,9 @@ const ProductDetail: React.FC = () => {
       });
       return;
     }
+
+    const safeQuantity = clampQuantity(quantity, true);
+    if (safeQuantity !== quantity) setQuantity(safeQuantity);
 
     const quickBuyItem = {
         branch_product_id: String(branchProduct.id || branchProduct._id),
@@ -340,9 +350,9 @@ const ProductDetail: React.FC = () => {
         original_price: branchProduct.original_price || branchProduct.price,
         final_price: branchProduct.price,
         discount_amount: 0,
-        quantity,
+      quantity: safeQuantity,
         product_name: product.name || 'Sản phẩm',
-        product_image: product.images?.[0] || product.thumbnail || '',
+      product_image: resolveImageUrl(product.images?.[0] || product.thumbnail || ''),
         branchProduct: { ...branchProduct, product: product as any },
         branch_id: currentBranchId,
         branch_name: currentBranch?.name || '',
@@ -356,18 +366,18 @@ const ProductDetail: React.FC = () => {
   const handleToggleCompare = () => {
     const productId = String(product?.id || product?._id || '');
     if (!productId) {
-      toast.error('Không thể thêm sản phẩm này vào so sánh');
+      toast.error(t('compare.cannotAdd'));
       return;
     }
 
     if (isCompared) {
       dispatch(removeCompareItem(productId));
-      toast.success('Đã bỏ khỏi danh sách so sánh');
+      toast.success(t('compare.removed'));
       return;
     }
 
     if (compareIds.length >= compareMaxItems) {
-      toast.error(`Chỉ được so sánh tối đa ${compareMaxItems} sản phẩm`);
+      toast.error(t('compare.maxItems', { max: compareMaxItems }));
       return;
     }
 
@@ -381,7 +391,7 @@ const ProductDetail: React.FC = () => {
       discount_percent: Number(branchProduct?.discount_percent || product?.discount_percent || 0),
       brand: product?.brand || '',
     }));
-    toast.success('Đã thêm vào danh sách so sánh');
+    toast.success(t('compare.added'));
   };
 
   const handleToggleWishlist = async () => {
@@ -400,7 +410,7 @@ const ProductDetail: React.FC = () => {
       const result = await dataService.toggleWishlist(payload);
       const wished = typeof result?.wished === 'boolean' ? result.wished : !isWished;
       setIsWished(wished);
-      toast.success(wished ? 'Đã thêm vào yêu thích' : 'Đã bỏ khỏi yêu thích');
+      toast.success(wished ? t('product.addedWishlist') : t('product.removedWishlist'));
     } catch {
       toast.error('Không thể cập nhật danh sách yêu thích');
     } finally {
@@ -439,8 +449,35 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const increaseQty = () => setQuantity((prev) => prev + 1);
-  const decreaseQty = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  const getEffectiveMax = () => {
+    const maxLimit = Math.max(1, Number(branchProduct?.max_purchase_limit || 20));
+    const maxStock = Math.max(0, Number(branchProduct?.stock ?? product?.stock ?? 0));
+    return maxStock > 0 ? Math.min(maxLimit, maxStock) : maxLimit;
+  };
+
+  const clampQuantity = (value: number, notify: boolean) => {
+    if (!Number.isFinite(value)) {
+      if (notify) toast.warning(t('cart.invalidQuantity', 'Số lượng không hợp lệ'));
+      return 1;
+    }
+
+    let safeValue = Math.max(1, Math.floor(value));
+    const maxAllowed = getEffectiveMax();
+    if (safeValue > maxAllowed) {
+      safeValue = maxAllowed;
+      if (notify) {
+        if (Number(branchProduct?.stock ?? 0) > 0 && safeValue === Number(branchProduct?.stock ?? 0)) {
+          toast.warning(t('cart.stockLimitWarning', { stock: Number(branchProduct?.stock ?? 0), defaultValue: `Chỉ còn ${Number(branchProduct?.stock ?? 0)} sản phẩm trong kho` }));
+        } else {
+          toast.warning(t('cart.maxLimitReached', { max: maxAllowed }));
+        }
+      }
+    }
+    return safeValue;
+  };
+
+  const increaseQty = () => setQuantity((prev) => clampQuantity(prev + 1, true));
+  const decreaseQty = () => setQuantity((prev) => clampQuantity(prev - 1, false));
 
   return (
     <>
@@ -456,9 +493,9 @@ const ProductDetail: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-8">
-          <Link to="/" className="hover:text-primary transition-colors">Trang chủ</Link>
+          <Link to="/" className="hover:text-primary transition-colors">{t('common.breadcrumbHome')}</Link>
           <span className="material-symbols-outlined text-xs">chevron_right</span>
-          <Link to="/products" className="hover:text-primary transition-colors">Sản phẩm</Link>
+          <Link to="/products" className="hover:text-primary transition-colors">{t('product.products')}</Link>
           <span className="material-symbols-outlined text-xs">chevron_right</span>
           <span className="text-slate-900 dark:text-slate-100 font-medium">{product.name}</span>
         </nav>
@@ -482,17 +519,17 @@ const ProductDetail: React.FC = () => {
               <img
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                src={product.images?.[0] || product.thumbnail || 'https://via.placeholder.com/600'}
+                src={resolveImageUrl(product.images?.[0] || product.thumbnail || '') || fallbackProductImage}
               />
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {branchProduct?.is_new && (
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                    Mới
+                    {t('product.badgeNew')}
                   </span>
                 )}
                 {branchProduct?.is_best_seller && (
                   <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                    Bán chạy
+                    {t('product.badgeBestSeller')}
                   </span>
                 )}
                 {product.is_featured && (
@@ -510,7 +547,7 @@ const ProductDetail: React.FC = () => {
                     idx === 0 ? 'border-primary' : 'border-slate-200 dark:border-slate-700'
                   } overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-800`}
                 >
-                  <img className="w-full h-full object-cover" src={img} alt={product.name} />
+                  <img className="w-full h-full object-cover" src={resolveImageUrl(img) || fallbackProductImage} alt={product.name} />
                 </div>
               ))}
             </div>
@@ -597,12 +634,12 @@ const ProductDetail: React.FC = () => {
                     displayStock > 0 ? (
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
                         <span className="material-symbols-outlined text-sm">check_circle</span>
-                        Còn hàng: {displayStock} sản phẩm
+                        {t('common.inStock')}: {displayStock} {t('common.product')}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-red-500 text-sm font-medium">
                         <span className="material-symbols-outlined text-sm">cancel</span>
-                        Hết hàng tại chi nhánh này
+                        {t('common.outOfStock')}
                       </div>
                     )
                   ) : null}
@@ -697,7 +734,7 @@ const ProductDetail: React.FC = () => {
                   }`}
                 >
                   <span className="material-symbols-outlined">add_shopping_cart</span>
-                  {canPurchase ? 'Thêm vào giỏ' : 'Không khả dụng'}
+                  {canPurchase ? t('common.addToCart') : t('common.outOfStock')}
                 </button>
                 <button
                   onClick={handleBuyNow}

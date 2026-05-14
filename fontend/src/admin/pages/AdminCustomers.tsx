@@ -49,7 +49,7 @@ const AdminCustomers: React.FC = () => {
       const data = await dataService.getUsers();
       console.log('[AdminCustomers] users fetched:', data.length, data);
       setCustomers(data);
-    } catch (e: any) {
+    } catch {
       toast.error('Lỗi khi tải dữ liệu khách hàng');
     } finally {
       setLoading(false);

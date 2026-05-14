@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { dataService } from '../../services/dataService';
+import httpClient from '../../api/httpClient';
+import { useTranslation } from 'react-i18next';
 
 const AdminSystemSettings: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -13,6 +16,43 @@ const AdminSystemSettings: React.FC = () => {
   const [paymentProviders, setPaymentProviders] = useState<any[]>([]);
   const [notifyTemplates, setNotifyTemplates] = useState<any[]>([]);
   const [passwordForm, setPasswordForm] = useState({ old: '', new: '', confirm: '' });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Shared logo upload handler
+  const handleLogoFile = async (file: File) => {
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED.includes(file.type)) {
+      toast.error(t('settings.logoInvalidType', 'Chỉ chấp nhận JPG, PNG, WebP, GIF'));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(t('settings.logoTooLarge', 'Ảnh logo tối đa 2MB'));
+      return;
+    }
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append('logo', file);
+      // Override default application/json so Axios sends it as multipart
+      const res = await httpClient.post('/uploads/brand-logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const url = res?.data?.data?.url || res?.data?.url;
+      if (url) {
+        handleSettingChange('brand_logo_url', url);
+        toast.success(t('settings.logoUploadSuccess', 'Tải logo lên thành công!'));
+      } else {
+        toast.error(t('settings.logoNoUrl', 'Không nhận được URL từ server'));
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || t('settings.logoUploadError', 'Lỗi tải logo'));
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
 
   // Load Data
   const loadData = async () => {
@@ -71,7 +111,6 @@ const AdminSystemSettings: React.FC = () => {
         dataService.updateAdminSettings(settings),
         dataService.updatePaymentProviders(paymentProviders),
         dataService.updateNotificationTemplate(notifyTemplates[0]?.id || 'order_created', notifyTemplates[0]),
-        // Ignoring loyalty for now if they don't have multiple rules
       ]);
       toast.success('Lưu cấu hình hệ thống thành công!');
       setHasChanges(false);
@@ -149,22 +188,97 @@ const AdminSystemSettings: React.FC = () => {
                     <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
                     <h3 className="text-xl font-bold uppercase tracking-tight">Thông tin cơ bản</h3>
                   </div>
+
+                  {/* Brand Logo Upload with Drag & Drop */}
+                  <div
+                    className={`flex items-start gap-6 mb-6 p-5 rounded-xl border-2 transition-all ${
+                      isDragging
+                        ? 'border-blue-400 bg-blue-50/60 shadow-lg shadow-blue-100'
+                        : 'border-slate-100 bg-slate-50/80 border-dashed'
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleLogoFile(file);
+                    }}
+                  >
+                    <div
+                      className={`w-24 h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-white overflow-hidden flex-shrink-0 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group relative ${
+                        isDragging ? 'border-blue-400 scale-105' : 'border-slate-300'
+                      }`}
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      {settings.brand_logo_url ? (
+                        <>
+                          <img src={settings.brand_logo_url} alt="Logo" className="w-full h-full object-contain" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white text-xl">edit</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className={`material-symbols-outlined text-2xl transition-colors ${isDragging ? 'text-blue-500' : 'text-slate-300 group-hover:text-blue-400'}`}>cloud_upload</span>
+                          <span className={`text-[9px] mt-1 transition-colors ${isDragging ? 'text-blue-600 font-bold' : 'text-slate-400 group-hover:text-blue-500'}`}>
+                            {isDragging ? t('settings.logoDrop', 'Thả ảnh') : t('settings.logoUpload', 'Tải lên')}
+                          </span>
+                        </>
+                      )}
+                      {uploadingLogo && (
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoFile(file);
+                      }}
+                    />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-secondary">{t('settings.logoTitle', 'Logo / Ảnh thương hiệu')}</label>
+                      <p className="text-xs text-slate-500">{t('settings.logoDesc', 'Nhấn vào ô bên trái hoặc kéo thả ảnh để tải lên. Định dạng: JPG, PNG, WebP. Tối đa 2MB.')}</p>
+                      {settings.brand_logo_url && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="material-symbols-outlined text-green-500 text-[14px]">check_circle</span>
+                          <span className="text-[10px] text-green-700 font-semibold">{t('settings.logoUploaded', 'Đã tải logo')}</span>
+                          <span className="text-[10px] text-blue-600 font-mono truncate max-w-[220px]" title={settings.brand_logo_url}>{settings.brand_logo_url.split('/').pop()}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSettingChange('brand_logo_url', '')}
+                            className="text-rose-500 hover:text-rose-700 transition-colors ml-1"
+                            title={t('settings.logoDelete', 'Xóa logo')}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-slate-400">{t('settings.logoNote', 'Hiển thị trên header, email, và hóa đơn.')}</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-6">
                     <div className="col-span-2 md:col-span-1 space-y-1.5">
                       <label className="text-[11px] font-black uppercase tracking-wider text-secondary">Tên hệ thống</label>
-                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="text" value={settings.system_name || ''} onChange={e => handleSettingChange('system_name', e.target.value)} />
+                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="text" placeholder="VD: Lotte Mart Online" value={settings.system_name || ''} onChange={e => handleSettingChange('system_name', e.target.value)} />
                     </div>
                     <div className="col-span-2 md:col-span-1 space-y-1.5">
                       <label className="text-[11px] font-black uppercase tracking-wider text-secondary">Tên thương hiệu hiển thị</label>
-                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" value={settings.brand_name || ''} onChange={e => handleSettingChange('brand_name', e.target.value)} />
+                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="VD: LOTTE Mart" value={settings.brand_name || ''} onChange={e => handleSettingChange('brand_name', e.target.value)} />
                     </div>
                     <div className="col-span-2 md:col-span-1 space-y-1.5">
                       <label className="text-[11px] font-black uppercase tracking-wider text-secondary">Email liên hệ</label>
-                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="email" value={settings.support_email || ''} onChange={e => handleSettingChange('support_email', e.target.value)} />
+                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="email" placeholder="VD: support@lottemart.vn" value={settings.support_email || ''} onChange={e => handleSettingChange('support_email', e.target.value)} />
                     </div>
                     <div className="col-span-2 md:col-span-1 space-y-1.5">
                       <label className="text-[11px] font-black uppercase tracking-wider text-secondary">Hotline / Switchboard</label>
-                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="text" value={settings.support_phone || ''} onChange={e => handleSettingChange('support_phone', e.target.value)} />
+                      <input className="w-full bg-surface-container-low border border-transparent rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-blue-500 outline-none transition-all" type="text" placeholder="VD: 1900 xxxx" value={settings.support_phone || ''} onChange={e => handleSettingChange('support_phone', e.target.value)} />
                     </div>
                   </div>
                 </div>

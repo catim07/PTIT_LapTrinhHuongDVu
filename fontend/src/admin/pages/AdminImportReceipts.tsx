@@ -5,12 +5,15 @@ import { toast } from '../../components/Toast/toastEvent';
 import {
   PageHeader, SearchBar, StatusBadge, EmptyState,
   LoadingOverlay, PaginationControl, Modal, DetailDrawer,
-  FormSection, FormField, StatCard, cls,
+  FormSection, FormField, StatCard, cls, InfoRow
 } from '../components/AdminUI';
+import { exportImportReceiptPDF, exportImportReceiptWord } from '../utils/exportUtils';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 const AdminImportReceipts: React.FC = () => {
+  const { t } = useTranslation();
   const { adminBranchId } = useAppSelector((s) => s.adminAuth);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -135,8 +138,25 @@ const AdminImportReceipts: React.FC = () => {
     }
   };
 
+  /* Export Action */
+  const handleExportAction = async (type: 'pdf' | 'word', receipt: any) => {
+    try {
+      setLoading(true);
+      if (type === 'pdf') {
+        exportImportReceiptPDF(receipt);
+      } else {
+        await exportImportReceiptWord(receipt);
+      }
+      toast.success(`Đã xuất ${type.toUpperCase()}`);
+    } catch (error) {
+      toast.error(`Lỗi khi xuất file ${type.toUpperCase()}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   /* Receivable order count */
-  const receivableOrders = useMemo(() => orders.filter(o => o.status !== 'cancelled' && o.status !== 'received'), [orders]);
+  const receivableOrders = useMemo(() => orders.filter((o) => o.status === 'ordered' || o.status === 'partially_received'), [orders]);
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
@@ -345,11 +365,31 @@ const AdminImportReceipts: React.FC = () => {
       >
         {detailReceipt && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <StatusBadge status={detailReceipt.status || 'received'} label="Đã nhận" />
-              <span className="text-xs text-slate-500">
-                {detailReceipt.received_date ? new Date(detailReceipt.received_date).toLocaleDateString('vi-VN') : ''}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <StatusBadge status={detailReceipt.status || 'received'} label="Đã nhận" />
+                <span className="text-xs text-slate-500">
+                  {detailReceipt.received_date ? new Date(detailReceipt.received_date).toLocaleDateString('vi-VN') : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExportAction('word', detailReceipt)}
+                  disabled={loading}
+                  className="px-3 py-1.5 flex items-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">description</span>
+                  {t('importOrders.exportWord', 'Xuất Word')}
+                </button>
+                <button
+                  onClick={() => handleExportAction('pdf', detailReceipt)}
+                  disabled={loading}
+                  className="px-3 py-1.5 flex items-center gap-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                  {t('importOrders.exportPdf', 'Xuất PDF')}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -394,12 +434,5 @@ const AdminImportReceipts: React.FC = () => {
     </div>
   );
 };
-
-const InfoRow: React.FC<{ label: string; value?: string }> = ({ label, value }) => (
-  <div className="py-2 border-b border-slate-50">
-    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">{label}</span>
-    <span className="text-sm font-medium text-slate-800">{value || '—'}</span>
-  </div>
-);
 
 export default AdminImportReceipts;

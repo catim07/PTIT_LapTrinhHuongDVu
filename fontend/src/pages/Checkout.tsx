@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector, useAppDispatch } from '../store';
 import { loadAddresses, addAddressThunk } from '../slices/addressSlice';
 import { loadAllBranchCarts, selectCurrentBranchItems } from '../slices/cartSlice';
@@ -36,6 +37,7 @@ const getCouponLifecycle = (coupon: any) => {
 };
 
 const Checkout: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedDelivery, setSelectedDelivery] = useState<'fast' | 'standard'>('fast');
   const { data: addresses, status: addrStatus } = useAppSelector(state => state.address);
   const { appliedCoupon, status: cartStatus } = useAppSelector(state => state.cart);
@@ -196,6 +198,21 @@ const Checkout: React.FC = () => {
     };
     fetchPromo();
   }, [itemsStr, currentBranchId, appliedCoupon, selectedVouchersStr, selectedDelivery, selectedShippingFeeBase]);
+
+  useEffect(() => {
+    if (promoData?.coupon_error && appliedCoupon) {
+      toast.warning(`Mã giảm giá đã bị gỡ: ${promoData.coupon_error}`);
+      dispatch(removeCoupon());
+    }
+    if (promoData?.product_voucher_error && selectedProductVoucher) {
+      toast.warning(`Voucher giảm giá đã bị gỡ: ${promoData.product_voucher_error}`);
+      setSelectedProductVoucher(null);
+    }
+    if (promoData?.shipping_voucher_error && selectedShippingVoucher) {
+      toast.warning(`Voucher vận chuyển đã bị gỡ: ${promoData.shipping_voucher_error}`);
+      setSelectedShippingVoucher(null);
+    }
+  }, [promoData?.coupon_error, promoData?.product_voucher_error, promoData?.shipping_voucher_error, appliedCoupon, selectedProductVoucher, selectedShippingVoucher, dispatch]);
 
   useEffect(() => {
     if (otpCooldown <= 0) return;
@@ -455,7 +472,7 @@ const Checkout: React.FC = () => {
         } else {
             toast.error('Lỗi khi lưu địa chỉ');
         }
-    } catch (error) {
+    } catch {
         toast.error('Lỗi kết nối khi lưu địa chỉ');
     } finally {
         setIsSubmittingAddress(false);
@@ -494,7 +511,7 @@ const Checkout: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">location_on</span>
-                Địa chỉ nhận hàng
+                {t('checkout.shippingAddress', 'Địa chỉ nhận hàng')}
               </h2>
             </div>
             {currentAddress ? (
@@ -533,7 +550,7 @@ const Checkout: React.FC = () => {
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">local_shipping</span>
-              Phương thức giao hàng
+              {t('checkout.deliveryMethod', 'Phương thức giao hàng')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className={`relative flex items-center gap-4 p-4 ${selectedDelivery === 'fast' ? 'bg-white dark:bg-slate-800 border-2 border-primary' : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700'} rounded-xl cursor-pointer`}>
@@ -561,7 +578,7 @@ const Checkout: React.FC = () => {
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">call</span>
-              Số điện thoại đặt hàng
+              {t('checkout.phone', 'Số điện thoại đặt hàng')}
             </h2>
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-primary/10 p-4 space-y-2">
               <label htmlFor="checkout-phone" className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -589,7 +606,7 @@ const Checkout: React.FC = () => {
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">confirmation_number</span>
-              Mã giảm giá
+              {t('checkout.couponCode', 'Mã giảm giá')}
             </h2>
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-primary/10 p-4 space-y-3">
               {/* Selected vouchers preview */}
@@ -637,7 +654,7 @@ const Checkout: React.FC = () => {
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">receipt_long</span>
-              Kiểm tra đơn hàng ({items.length})
+              {t('checkout.orderReview', 'Kiểm tra đơn hàng')} ({items.length})
             </h2>
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-primary/10 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
               {items.map((item) => {
@@ -719,7 +736,7 @@ const Checkout: React.FC = () => {
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-4">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-primary/10 shadow-lg">
-              <h3 className="font-bold text-lg mb-4 border-b border-slate-100 pb-2">Chi tiết thanh toán</h3>
+              <h3 className="font-bold text-lg mb-4 border-b border-slate-100 pb-2">{t('checkout.paymentDetails', 'Chi tiết thanh toán')}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Tạm tính ({items.length} món)</span>
@@ -796,6 +813,26 @@ const Checkout: React.FC = () => {
                     </p>
                     <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">(Đã bao gồm tất cả phụ phí)</p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">support_agent</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{t('support.checkoutHelpTitle')}</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('support.checkoutHelpDesc')}</p>
+                  <div className="text-xs text-slate-600 mt-2">
+                    <div>📞 {settings?.support_phone || '1800 599 907'}</div>
+                    <div>✉️ {settings?.support_email || 'cskh@lottemart.vn'}</div>
+                  </div>
+                  <Link to="/account/support" className="inline-flex items-center gap-1 text-xs font-bold text-primary mt-3">
+                    {t('support.checkoutHelpCta')}
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </Link>
                 </div>
               </div>
             </div>

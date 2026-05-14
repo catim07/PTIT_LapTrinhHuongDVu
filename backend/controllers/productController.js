@@ -848,11 +848,35 @@ export const update = async (req, res) => {
   }
 };
 
-// DELETE /api/products/:id (admin)
+// DELETE /api/products/:id (admin) — safe soft delete
 export const remove = async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
-    return res.json({ success: true, message: 'Xóa sản phẩm thành công' });
+    const product = await Product.findOne({ _id: req.params.id, is_deleted: { $ne: true } });
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found or already deleted' });
+    }
+
+    // Soft-delete: mark as deleted and deactivate
+    product.is_deleted = true;
+    product.is_active = false;
+    await product.save();
+
+    // Deactivate all BranchProducts linked to this product
+    await BranchProduct.updateMany(
+      { product_id: product._id },
+      { $set: { is_available: false } }
+    );
+
+    // Invalidate product cache
+    try {
+      const { deleteCachePattern } = await import('../services/redisService.js');
+      await deleteCachePattern('cache:*/api*products*');
+    } catch (_cacheErr) { /* non-critical */ }
+
+    return res.json({
+      success: true,
+      message: 'Sản phẩm đã được xóa (soft delete) và tất cả branch products đã bị vô hiệu hóa',
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

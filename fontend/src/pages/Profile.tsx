@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector, useAppDispatch } from '../store';
 import { loadOrders } from '../slices/orderSlice';
 import { loadAddresses } from '../slices/addressSlice';
@@ -24,6 +25,7 @@ interface ProfileSummaryData {
 
 /** Mini wallet widget showing claimed vouchers */
 const WalletWidget: React.FC = () => {
+  const { t } = useTranslation();
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +41,7 @@ const WalletWidget: React.FC = () => {
     }).catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center py-4 text-sm text-slate-400">Đang tải...</div>;
+  if (loading) return <div className="text-center py-4 text-sm text-slate-400">{t('profilePage.loading')}</div>;
 
   const productCount = vouchers.filter(v => v.voucher_type !== 'shipping').length;
   const shippingCount = vouchers.filter(v => v.voucher_type === 'shipping').length;
@@ -47,8 +49,8 @@ const WalletWidget: React.FC = () => {
   if (vouchers.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="text-sm text-slate-500 mb-2">Chưa có voucher nào</p>
-        <p className="text-xs text-slate-400">Hãy qua trang Khuyến mãi để nhận</p>
+        <p className="text-sm text-slate-500 mb-2">{t('profilePage.noVouchers')}</p>
+        <p className="text-xs text-slate-400">{t('profilePage.goToPromotions')}</p>
       </div>
     );
   }
@@ -57,10 +59,10 @@ const WalletWidget: React.FC = () => {
     <div className="space-y-3">
       <div className="flex gap-2 text-xs">
         <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-bold border border-red-100">
-          {productCount} giảm giá
+          {t('profilePage.discountCount', { count: productCount })}
         </span>
         <span className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold border border-teal-100">
-          {shippingCount} vận chuyển
+          {t('profilePage.shippingCount', { count: shippingCount })}
         </span>
       </div>
       {vouchers.slice(0, 3).map((v: any) => {
@@ -77,20 +79,21 @@ const WalletWidget: React.FC = () => {
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{v.title || v.code}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] font-bold text-green-600">-{discLabel}</span>
-                {v.end_date && <span className="text-[10px] text-slate-400">HSD: {new Date(v.end_date).toLocaleDateString('vi-VN')}</span>}
+                {v.end_date && <span className="text-[10px] text-slate-400">{t('profilePage.expiryLabel', { date: new Date(v.end_date).toLocaleDateString('vi-VN') })}</span>}
               </div>
             </div>
           </div>
         );
       })}
       {vouchers.length > 3 && (
-        <p className="text-xs text-center text-slate-400">và {vouchers.length - 3} voucher khác...</p>
+        <p className="text-xs text-center text-slate-400">{t('profilePage.andMoreVouchers', { count: vouchers.length - 3 })}</p>
       )}
     </div>
   );
 };
 
 const Profile: React.FC = () => {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
@@ -162,7 +165,7 @@ const Profile: React.FC = () => {
                   {user.membership_level} Member
                 </span>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">Thành viên Lotte từ tháng 05, 2023</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">{t('profilePage.memberSince', { date: '05, 2023' })}</p>
 
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800/50">
@@ -171,7 +174,7 @@ const Profile: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800/50">
                   <span className="material-symbols-outlined text-primary">phone</span>
-                  <span className="font-medium">{user.phone || 'Chưa cập nhật số điện thoại'}</span>
+                  <span className="font-medium">{user.phone || t('profilePage.noPhone')}</span>
                 </div>
               </div>
             </div>
@@ -185,19 +188,19 @@ const Profile: React.FC = () => {
               {/* Stat Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 soft-shadow">
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Đang xử lý</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{t('profilePage.processing')}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">{processingOrders}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 soft-shadow">
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Đang giao</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{t('profilePage.shipping')}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">{shippingOrders}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 soft-shadow">
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Đã giao</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{t('profilePage.delivered')}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">{deliveredOrders}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-100 dark:border-slate-800 soft-shadow">
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Đã hủy</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{t('profilePage.cancelled')}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">{cancelledOrders}</p>
                 </div>
               </div>
@@ -205,9 +208,9 @@ const Profile: React.FC = () => {
               {/* Recent Orders */}
               <div className="bg-white dark:bg-slate-900 rounded-xl soft-shadow border border-slate-100 dark:border-slate-800 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Đơn hàng gần đây</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('profilePage.recentOrders')}</h3>
                   <Link to="/account/orders" className="text-primary text-sm font-bold hover:underline">
-                    Xem tất cả
+                    {t('profilePage.viewAll')}
                   </Link>
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -222,9 +225,9 @@ const Profile: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white">Đơn hàng #{order.id}</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{t('profilePage.orderNumber', { id: order.id })}</p>
                           <p className="text-sm text-slate-500">
-                            {new Date(order.created_at).toLocaleDateString('vi-VN')} • {(order.total_amount || 0).toLocaleString()}đ • {(order.items || []).length} sản phẩm
+                            {new Date(order.created_at).toLocaleDateString('vi-VN')} • {(order.total_amount || 0).toLocaleString()}đ • {t('profilePage.productsCount', { count: (order.items || []).length })}
                           </p>
                         </div>
                       </div>
@@ -232,7 +235,7 @@ const Profile: React.FC = () => {
                         <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase ${
                           order.status === 'DELIVERED' ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600'
                         }`}>
-                          {order.status === 'DELIVERED' ? 'Đã giao' : 'Đang xử lý'}
+                          {t(`orderStatuses.${order.status}`, order.status)}
                         </span>
                         <Link to={`/account/orders/${order.id}`}>
                            <span className="material-symbols-outlined text-slate-400">chevron_right</span>
@@ -240,7 +243,7 @@ const Profile: React.FC = () => {
                       </div>
                     </div>
                   )) : (
-                    <div className="p-10 text-center text-slate-500">Chưa có đơn hàng nào</div>
+                    <div className="p-10 text-center text-slate-500">{t('profilePage.noOrders')}</div>
                   )}
                 </div>
               </div>
@@ -252,7 +255,7 @@ const Profile: React.FC = () => {
               <div className="p-6 rounded-xl shadow-lg" style={{ background: 'linear-gradient(135deg, #C1121F 0%, #E63946 100%)', color: '#fff' }}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>Lotte Points</p>
+                    <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>{t('profilePage.lottePoints')}</p>
                     <h4 className="text-3xl font-bold" style={{ color: '#fff' }}>{(user.lotte_points || 0).toLocaleString()}</h4>
                   </div>
                   <span className="material-symbols-outlined text-4xl" style={{ color: 'rgba(255,255,255,0.5)' }}>military_tech</span>
@@ -261,7 +264,7 @@ const Profile: React.FC = () => {
                   <div className="h-full rounded-full" style={{ backgroundColor: '#fff', width: `${Math.min(((user.lotte_points || 0) / 200) * 100, 100)}%` }} />
                 </div>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                  {(user.lotte_points || 0) < 200 ? `Còn ${200 - (user.lotte_points || 0)} điểm để lên hạng Platinum` : 'Bạn đã đạt hạng cao nhất!'}
+                  {(user.lotte_points || 0) < 200 ? t('profilePage.pointsToUpgrade', { points: 200 - (user.lotte_points || 0) }) : t('profilePage.maxRank')}
                 </p>
               </div>
 
@@ -270,10 +273,10 @@ const Profile: React.FC = () => {
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary">sell</span>
-                    Ví voucher của tôi
+                    {t('profilePage.myVouchers')}
                   </h4>
                   <Link to="/promotions" className="text-primary text-xs font-bold hover:underline">
-                    + Nhận thêm
+                    {t('profilePage.getMore')}
                   </Link>
                 </div>
                 <WalletWidget />
@@ -284,7 +287,7 @@ const Profile: React.FC = () => {
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary">location_on</span>
-                    Địa chỉ mặc định
+                    {t('profilePage.defaultAddress')}
                   </h4>
                   <Link to="/account/addresses">
                     <span className="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary transition-colors">edit</span>
@@ -295,9 +298,9 @@ const Profile: React.FC = () => {
                   <p className="text-slate-600 dark:text-slate-400">
                     {defaultAddress
                       ? `${defaultAddress.street || ''}, ${defaultAddress.ward || ''}, ${defaultAddress.district || ''}, ${defaultAddress.city || ''}`
-                      : 'Chưa cập nhật địa chỉ'}
+                      : t('profilePage.noAddress')}
                   </p>
-                  <p className="text-slate-600 dark:text-slate-400">SĐT: {defaultAddress?.phone || user.phone}</p>
+                  <p className="text-slate-600 dark:text-slate-400">{t('profilePage.phoneLabel')} {defaultAddress?.phone || user.phone}</p>
                 </div>
               </div>
 
@@ -305,17 +308,17 @@ const Profile: React.FC = () => {
               <div className="bg-white dark:bg-slate-900 p-6 rounded-xl soft-shadow border border-slate-100 dark:border-slate-800">
                 <h4 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">tune</span>
-                  Cài đặt nhanh
+                  {t('profilePage.quickSettings')}
                 </h4>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Thông báo đơn hàng</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">{t('profilePage.orderNotifications')}</span>
                     <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${user.preferences?.sms_alerts ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}>
                       <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${user.preferences?.sms_alerts ? 'right-1' : 'left-1'}`} />
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Hệ thống Lotte Eco</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">{t('profilePage.ecoSystem')}</span>
                     <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${user.preferences?.eco_prefer ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}>
                       <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${user.preferences?.eco_prefer ? 'right-1' : 'left-1'}`} />
                     </div>

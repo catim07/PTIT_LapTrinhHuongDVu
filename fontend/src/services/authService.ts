@@ -231,6 +231,12 @@ export const authService = {
     };
   },
 
-  forgotPassword: async () => ({ success: false, message: 'NOT_IMPLEMENTED: forgot password endpoint chưa được bật' }),
-  resetPassword: async () => ({ success: false, message: 'NOT_IMPLEMENTED: reset password endpoint chưa được bật' }),
+  forgotPassword: async (email: string) => {
+    const response = await httpClient.post(endpoints.auth.forgotPassword, { email });
+    return response.data;
+  },
+  resetPassword: async (payload: { email: string; otp: string; newPassword: string }) => {
+    const response = await httpClient.post(endpoints.auth.resetPassword, payload);
+    return response.data;
+  },
 };

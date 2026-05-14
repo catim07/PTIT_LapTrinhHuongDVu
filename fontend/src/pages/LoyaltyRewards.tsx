@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadLoyaltyTransactions } from '../slices/loyaltySlice';
 
 const LoyaltyRewards: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector(state => state.auth);
   const { transactions, status, error } = useAppSelector(state => state.loyalty);
@@ -36,7 +38,7 @@ const LoyaltyRewards: React.FC = () => {
   const levelProgress = Math.min(((currentUser?.lotte_points || 0) / 10000) * 100, 100).toFixed(0);
 
   if (status === 'loading') {
-    return <div className="text-center py-20"><span className="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span><p>Đang tải dữ liệu điểm...</p></div>;
+    return <div className="text-center py-20"><span className="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span><p>{t('loyalty.loading')}</p></div>;
   }
   
   if (status === 'failed') {
@@ -66,7 +68,7 @@ const LoyaltyRewards: React.FC = () => {
                 </span>
                 <div className="flex items-baseline gap-1 mb-6">
                   <span className="text-5xl font-black text-primary">{displayPoints.toLocaleString()}</span>
-                  <span className="text-sm font-semibold text-slate-400 uppercase tracking-widest">Điểm</span>
+                  <span className="text-sm font-semibold text-slate-400 uppercase tracking-widest">{t('loyalty.points')}</span>
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-sm font-bold">
@@ -87,13 +89,13 @@ const LoyaltyRewards: React.FC = () => {
                 <span className="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">
                   qr_code_2
                 </span>
-                <span className="text-xs font-bold uppercase tracking-tight">Hiện ID thành viên</span>
+                <span className="text-xs font-bold uppercase tracking-tight">{t('loyalty.showMemberId')}</span>
               </button>
               <button className="flex flex-col items-center justify-center gap-2 p-4 bg-white dark:bg-slate-900 rounded-xl border border-primary/5 hover:border-primary transition-all group shadow-sm">
                 <span className="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">
                   history
                 </span>
-                <span className="text-xs font-bold uppercase tracking-tight">Lịch sử đầy đủ</span>
+                <span className="text-xs font-bold uppercase tracking-tight">{t('loyalty.fullHistory')}</span>
               </button>
             </div>
           </div>
@@ -101,17 +103,17 @@ const LoyaltyRewards: React.FC = () => {
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-primary/5 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <h3 className="font-bold text-lg">Giao dịch gần đây</h3>
-                <button className="text-primary text-sm font-semibold hover:underline">Xem tất cả</button>
+                <h3 className="font-bold text-lg">{t('loyalty.recentTransactions')}</h3>
+                <button className="text-primary text-sm font-semibold hover:underline">{t('loyalty.viewAll')}</button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-xs font-bold uppercase">
-                      <th className="px-6 py-4">Ngày</th>
-                      <th className="px-6 py-4">Nguồn</th>
-                      <th className="px-6 py-4">Loại</th>
-                      <th className="px-6 py-4 text-right">Điểm</th>
+                      <th className="px-6 py-4">{t('common.date')}</th>
+                      <th className="px-6 py-4">{t('loyalty.source')}</th>
+                      <th className="px-6 py-4">{t('common.type')}</th>
+                      <th className="px-6 py-4 text-right">{t('loyalty.points')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -148,7 +150,7 @@ const LoyaltyRewards: React.FC = () => {
         <section className="mt-16">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Đổi điểm thưởng</h3>
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t('loyalty.redeemPoints')}</h3>
               <p className="text-slate-500 dark:text-slate-400">
                 Chọn từ hàng trăm phần thưởng độc quyền được thiết kế dành riêng cho bạn.
               </p>
@@ -185,9 +187,7 @@ const LoyaltyRewards: React.FC = () => {
                     <span className="material-symbols-outlined text-gold text-lg">database</span>
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">2,000 Điểm</span>
                   </div>
-                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">
-                    Đổi ngay
-                  </button>
+                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">{t('loyalty.redeemNow')}</button>
                 </div>
               </div>
             </div>
@@ -209,9 +209,7 @@ const LoyaltyRewards: React.FC = () => {
                     <span className="material-symbols-outlined text-gold text-lg">database</span>
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">850 Điểm</span>
                   </div>
-                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">
-                    Đổi ngay
-                  </button>
+                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">{t('loyalty.redeemNow')}</button>
                 </div>
               </div>
             </div>
@@ -236,9 +234,7 @@ const LoyaltyRewards: React.FC = () => {
                     <span className="material-symbols-outlined text-gold text-lg">database</span>
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">3,500 Điểm</span>
                   </div>
-                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">
-                    Đổi ngay
-                  </button>
+                  <button className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-tight">{t('loyalty.redeemNow')}</button>
                 </div>
               </div>
             </div>

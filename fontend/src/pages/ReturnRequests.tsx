@@ -25,6 +25,7 @@ const ReturnRequests: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
   const [reason, setReason] = useState('Hàng bị lỗi/không đúng mô tả');
   const [description, setDescription] = useState('');
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
 
   const eligibleOrders = useMemo(() => {
     return orders.filter((order: any) => ['DELIVERED', 'COMPLETED', 'RETURNED'].includes(String(order.status || '').toUpperCase()));
@@ -65,13 +66,20 @@ const ReturnRequests: React.FC = () => {
 
     setSubmitting(true);
     try {
+      let evidence_images: string[] = [];
+      if (evidenceFiles.length > 0) {
+        evidence_images = await dataService.uploadEvidenceImages(evidenceFiles);
+      }
+      
       await dataService.createReturnRequest({
         order_id: selectedOrderId,
         reason,
         description,
+        evidence_images,
       });
       toast.success('Đã gửi yêu cầu đổi trả/hoàn tiền');
       setDescription('');
+      setEvidenceFiles([]);
       await loadData();
     } catch (err: any) {
       toast.error(err?.message || 'Không thể gửi yêu cầu đổi trả');
@@ -149,6 +157,36 @@ const ReturnRequests: React.FC = () => {
           />
         </div>
 
+        <div>
+          <label className="block text-sm font-semibold mb-2">Hình ảnh/Video bằng chứng (Tối đa 5 ảnh)</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={(e) => {
+              if (e.target.files) {
+                setEvidenceFiles(Array.from(e.target.files).slice(0, 5));
+              }
+            }}
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+          />
+          {evidenceFiles.length > 0 && (
+            <div className="mt-2 flex gap-2 flex-wrap">
+              {evidenceFiles.map((file, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-slate-200">
+                  {file.type.startsWith('video/') ? (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white">play_circle</span>
+                    </div>
+                  ) : (
+                    <img src={URL.createObjectURL(file)} alt="evidence" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"
@@ -189,6 +227,21 @@ const ReturnRequests: React.FC = () => {
                   {request.description && <p className="mt-1 text-slate-600">{request.description}</p>}
                   {Number(request.amount_requested || 0) > 0 && (
                     <p className="mt-1 font-semibold text-primary">Giá trị yêu cầu: {Number(request.amount_requested).toLocaleString('vi-VN')}đ</p>
+                  )}
+                  {request.evidence_images && request.evidence_images.length > 0 && (
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      {request.evidence_images.map((url: string, idx: number) => (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="relative w-12 h-12 rounded-md overflow-hidden border border-slate-200 block">
+                           {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                             <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                               <span className="material-symbols-outlined text-white text-xs">play_circle</span>
+                             </div>
+                           ) : (
+                             <img src={url} alt="evidence" className="w-full h-full object-cover" />
+                           )}
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </div>
 

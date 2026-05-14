@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { eventService } from '../services/eventService';
 
 const FeaturedEvents: React.FC = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ const FeaturedEvents: React.FC = () => {
         setEvents(data);
       } catch (err: any) {
         console.error('API Error:', err);
-        setError(err.message || 'Lỗi tải dữ liệu');
+        setError(err.message || t('featuredEvents.errorLoad'));
       } finally {
         setLoading(false);
       }
@@ -34,10 +36,19 @@ const FeaturedEvents: React.FC = () => {
     }
   };
 
+  const formatPeriod = (start?: string, end?: string) => {
+    if (!start && !end) return '';
+    const s = start ? new Date(start).toLocaleDateString('vi-VN') : '';
+    const e = end ? new Date(end).toLocaleDateString('vi-VN') : '';
+    if (s && e) return `${s} - ${e}`;
+    if (s) return `${s} — ${t('event.ongoing') || 'Đang diễn ra'}`;
+    return e;
+  };
+
   if (loading) {
     return (
       <section className="max-w-7xl mx-auto px-4 py-12 text-center text-slate-500">
-        Đang tải sự kiện...
+        {t('featuredEvents.loading')}
       </section>
     );
   }
@@ -46,10 +57,10 @@ const FeaturedEvents: React.FC = () => {
     return (
       <section className="max-w-7xl mx-auto px-4 py-20 text-center">
         <span className="material-symbols-outlined text-5xl text-red-400 mb-4">error</span>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Lỗi tải dữ liệu</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('featuredEvents.errorLoad')}</h2>
         <p className="text-slate-500 mb-6">{error}</p>
         <button onClick={() => window.location.reload()} className="px-6 py-3 bg-primary text-white rounded-full font-bold hover:opacity-90">
-          Thử lại
+          {t('featuredEvents.retry')}
         </button>
       </section>
     );
@@ -59,9 +70,9 @@ const FeaturedEvents: React.FC = () => {
     return (
       <section className="text-center py-20 max-w-7xl mx-auto px-4">
         <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-4">event_busy</span>
-        <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">Không có sự kiện</h3>
+        <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">{t('featuredEvents.noEvents')}</h3>
         <p className="text-slate-500 dark:text-slate-400">
-          Hiện chưa có sự kiện nổi bật nào.
+          {t('featuredEvents.noEventsDesc')}
         </p>
       </section>
     );
@@ -70,7 +81,7 @@ const FeaturedEvents: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 py-12 md:px-6 lg:px-8">
       <h2 className="text-3xl font-bold mb-8 text-slate-900 dark:text-white">
-        Sự kiện nổi bật
+        {t('featuredEvents.title')}
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -89,7 +100,7 @@ const FeaturedEvents: React.FC = () => {
               {post.is_featured && (
                 <div className="absolute top-3 left-3 flex items-center gap-2">
                   <span className="px-2 py-1 bg-yellow-400 text-slate-900 text-[10px] font-bold rounded flex items-center gap-0.5">
-                    <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> NỔI BẬT
+                    <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {t('featuredEvents.featuredBadge')}
                   </span>
                 </div>
               )}
@@ -111,7 +122,7 @@ const FeaturedEvents: React.FC = () => {
                 )}
                 <span className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-xs">schedule</span>
-                  {formatDate(post.published_at)}
+                  {formatPeriod(post.start_date, post.end_date) || formatDate(post.published_at)}
                 </span>
                 {(post.views != null && post.views > 0) && (
                   <span className="flex items-center gap-1">

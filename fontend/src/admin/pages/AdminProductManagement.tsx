@@ -13,6 +13,7 @@ const AdminProductManagement: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | 'all'>('all');
@@ -44,16 +45,18 @@ const AdminProductManagement: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-       // Need to import enterpriseService at the top
-       const [bpRes, catRes, suppRes] = await Promise.all([
-         productService.getBranchProducts(), // Get all since UI handles local filtering
-         productService.getCategories({ include_inactive: true }),
-         import('../services/enterpriseService').then(m => m.enterpriseService.getSuppliers({ limit: 1000 })).catch(() => ({ data: [] }))
-       ]);
-       setItems((bpRes || []).filter((b: any) => b.product)); // Must have mapping
-       if (catRes) setCategories(catRes);
-       if (suppRes?.data) setSuppliers(suppRes.data);
-    } catch(err) {
+      const [bpRes, catRes] = await Promise.all([
+         productService.getBranchProducts(),
+         productService.getCategories({ include_inactive: true })
+      ]);
+      // Load suppliers and branches — use dynamic import to avoid circular deps
+      import('../services/enterpriseService').then(m => {
+         m.enterpriseService.getSuppliers({ limit: 1000 }).then(r => setSuppliers(r.data || []));
+         m.enterpriseService.getBranches().then(r => setBranches(Array.isArray(r) ? r : []));
+      });
+      setItems((bpRes || []).filter((b: any) => b.product));
+      if (catRes) setCategories(catRes);
+     } catch {
        toast.error('Lỗi khi tải dữ liệu cấu hình kho');
     } finally { setLoading(false); }
   };
@@ -65,13 +68,25 @@ const AdminProductManagement: React.FC = () => {
   const itemsPerPage = 8;
 
   const enrichedProducts: any[] = useMemo(() => {
+    const pickText = (primary: any, fallback: any) => {
+      if (primary !== undefined && primary !== null && String(primary).trim() !== '') return primary;
+      return fallback ?? '';
+    };
+    const pickNumber = (primary: any, fallback: any) => {
+      const primaryNum = Number(primary);
+      const fallbackNum = Number(fallback);
+      if (Number.isFinite(primaryNum) && primaryNum !== 0) return primaryNum;
+      if (Number.isFinite(fallbackNum)) return fallbackNum;
+      return 0;
+    };
+
     return items.map((bp) => {
       const master = bp.product || {};
       // Merge: master first, then BP overrides, then computed fields
-      const merged: any = { 
-         ...master, 
-         ...bp, 
-         master_id: master.id || master._id || bp.product_id, 
+      const merged: any = {
+         ...master,
+         ...bp,
+         master_id: master.id || master._id || bp.product_id,
          id: bp.id || bp._id,
          product_id: bp.product_id, // Keep original product_id for master updates
          is_active: bp.is_available ?? master.is_active ?? true,
@@ -82,7 +97,23 @@ const AdminProductManagement: React.FC = () => {
          is_featured: master.is_featured ?? false,
          is_best_seller: master.is_best_seller ?? false,
          is_new: master.is_new ?? false,
+         brand: master.brand || '',
+         barcode: master.barcode || '',
+         short_description: master.short_description || '',
+         thumbnail: master.thumbnail || '',
+         weight: master.weight || '',
+         unit: master.unit || 'cái',
+         storage_instructions: master.storage_instructions || '',
       };
+
+      merged.sku = pickText(bp.sku, master.sku);
+      merged.master_id = pickText(bp.master_id, master.master_id);
+      merged.category_id = pickText(bp.category_id, master.category_id);
+      merged.category_name = pickText(bp.category_name, master.category_name);
+      merged.supplier_id = pickText(bp.supplier_id, master.supplier_id);
+      merged.supplier_name = pickText(bp.supplier_name, master.supplier_name);
+      merged.import_price = pickNumber(bp.import_price, master.import_price);
+
       return merged;
     });
   }, [items]);
@@ -255,6 +286,26 @@ const AdminProductManagement: React.FC = () => {
     }
   };
 
+  const handleProductDelete = async (item: any) => {
+    const shouldDelete = window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${item.name}"?\nHành động này sẽ xóa hoặc ẩn sản phẩm khỏi hệ thống.`);
+    if (!shouldDelete) return;
+
+    try {
+      setIsProcessing(true);
+      // Delete the master product (productController.remove will soft delete and deactivate branches)
+      const masterId = item.master_id || item.product_id;
+      if (!masterId) throw new Error('Không tìm thấy ID sản phẩm gốc');
+      
+      await productService.deleteProduct(masterId);
+      toast.success('Đã xóa sản phẩm thành công');
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể xóa sản phẩm');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCreateDraftPromotion = (item: any) => {
     const daysLeft = item.days_until_expiry ?? null;
     // Smart discount: closer to expiry → deeper discount
@@ -317,6 +368,7 @@ const AdminProductManagement: React.FC = () => {
   const handleCreateSKU = async () => {
     setEditItem({
       id: '',
+      branch_id: branchFilter === 'ALL' ? '' : branchFilter,
       name: '',
       sku: `SKU-${Date.now().toString(36).toUpperCase()}`,
       master_id: `MAS-${Date.now().toString(36).toUpperCase()}`,
@@ -331,10 +383,17 @@ const AdminProductManagement: React.FC = () => {
       original_price: 0,
       price: 0,
       stock: 0,
-      is_active: false,
+      is_active: true,
       is_featured: false,
       is_best_seller: false,
       is_new: false,
+      brand: '',
+      barcode: '',
+      short_description: '',
+      thumbnail: '',
+      weight: '',
+      unit: 'cái',
+      storage_instructions: '',
     });
   };
 
@@ -386,12 +445,24 @@ const AdminProductManagement: React.FC = () => {
         manufacture_date: editItem.manufacture_date || null,
         expiry_date: editItem.expiry_date || null,
         batch_code: editItem.batch_code || '',
+        brand: editItem.brand || '',
+        barcode: editItem.barcode || '',
+        short_description: editItem.short_description || '',
+        thumbnail: editItem.thumbnail || '',
+        weight: editItem.weight || '',
+        unit: editItem.unit || 'cái',
+        storage_instructions: editItem.storage_instructions || '',
       };
 
       if (!editItem.id) {
         // CREATE flow: create Product first, then BranchProduct
         if (!editItem.name?.trim()) {
           toast.error('Vui lòng nhập tên sản phẩm!');
+          setIsProcessing(false);
+          return;
+        }
+        if (!editItem.branch_id) {
+          toast.error('Vui lòng chọn chi nhánh!');
           setIsProcessing(false);
           return;
         }
@@ -404,7 +475,7 @@ const AdminProductManagement: React.FC = () => {
         await productService.createBranchProduct({
           ...bpUpdates,
           product_id: createdProduct.id || createdProduct._id,
-          branch_id: branchFilter === 'ALL' ? '' : branchFilter,
+          branch_id: editItem.branch_id,
         });
         toast.success(`Đã tạo sản phẩm "${editItem.name}" thành công!`);
       } else {
@@ -864,6 +935,15 @@ const AdminProductManagement: React.FC = () => {
                             Tạo sale
                           </button>
                         )}
+                        <button 
+                          onClick={() => handleProductDelete(item)}
+                          disabled={isProcessing}
+                          className="px-4 py-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 font-bold text-[11px] rounded-lg transition-all flex items-center justify-center gap-1 w-full"
+                          title="Xóa sản phẩm"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                          Xóa
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -907,7 +987,7 @@ const AdminProductManagement: React.FC = () => {
       {/* Quick Edit Modal */}
       {editItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
@@ -926,7 +1006,7 @@ const AdminProductManagement: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={saveQuickEdit} className="p-6 space-y-6">
+            <form onSubmit={saveQuickEdit} className="p-6 space-y-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Số lượng tồn kho</label>
@@ -990,6 +1070,53 @@ const AdminProductManagement: React.FC = () => {
                     <option value="">-- Chọn NCC --</option>
                     {suppliers.map(s => <option key={s.id || s._id} value={s.id || s._id}>{s.name} {s.code ? `(${s.code})` : ''}</option>)}
                   </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 border-t border-slate-100 pt-4 mt-4">
+                {!editItem.id && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Chi nhánh</label>
+                    <select 
+                      value={editItem.branch_id || ''} 
+                      onChange={e => setEditItem({...editItem, branch_id: e.target.value})} 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm"
+                    >
+                      <option value="">-- Chọn chi nhánh --</option>
+                      {branches.map(b => <option key={b.id || b._id} value={b.id || b._id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Thương hiệu</label>
+                  <input type="text" value={editItem.brand || ''} onChange={e => setEditItem({...editItem, brand: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Barcode</label>
+                  <input type="text" value={editItem.barcode || ''} onChange={e => setEditItem({...editItem, barcode: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 font-mono text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Mô tả ngắn</label>
+                  <input type="text" value={editItem.short_description || ''} onChange={e => setEditItem({...editItem, short_description: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 border-t border-slate-100 pt-4 mt-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">URL Thumbnail</label>
+                  <input type="text" value={editItem.thumbnail || ''} onChange={e => setEditItem({...editItem, thumbnail: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Trọng lượng</label>
+                  <input type="text" value={editItem.weight || ''} onChange={e => setEditItem({...editItem, weight: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Đơn vị</label>
+                  <input type="text" value={editItem.unit || ''} onChange={e => setEditItem({...editItem, unit: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Bảo quản</label>
+                  <input type="text" value={editItem.storage_instructions || ''} onChange={e => setEditItem({...editItem, storage_instructions: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 text-sm" />
                 </div>
               </div>
 

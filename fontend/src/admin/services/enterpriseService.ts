@@ -50,8 +50,11 @@ export const enterpriseService = {
   updateRole: async (id: string, payload: any) => asObject(await httpClient.put(endpoints.roles.update(id), payload)),
   assignUserRole: async (payload: { user_id: string; role_key: string }) =>
     asObject(await httpClient.patch(endpoints.roles.assign, payload)),
+  createStaff: async (payload: any) => asObject(await httpClient.post('/users/staff', payload)),
 
   getAuditLogs: async (params: any = {}) => withPagination(await httpClient.get(endpoints.auditLogs.list, { params })),
+
+  getBranches: async () => asArray(await httpClient.get(endpoints.branches.list)),
 };
 
 export default enterpriseService;

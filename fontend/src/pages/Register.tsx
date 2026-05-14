@@ -1,5 +1,6 @@
 // src/pages/Register.tsx
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store';
 import { register, loginWithGoogle, clearAuthMessages, hydrateOAuthSession, verifySession } from '../slices/authSlice';
@@ -13,6 +14,7 @@ const usernameRegex = /^[\p{L} \.'\-]{2,80}$/u;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()[\]{}^~#\-+=<>/\\;:'",.])[A-Za-z\d@$!%*?&()[\]{}^~#\-+=<>/\\;:'",.]{8,}$/;
 
 const Register: React.FC = () => {
+  const { t } = useTranslation();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
   const isGoogleConfigured = googleClientId.length > 0;
   const [showPassword, setShowPassword] = useState(false);
@@ -294,7 +296,7 @@ const Register: React.FC = () => {
               </svg>
             </div>
           </div>
-          <h1 className="text-white text-5xl font-extrabold leading-tight mb-6">Mua sắm tại nhà cùng Lotte Mart</h1>
+          <h1 className="text-white text-5xl font-extrabold leading-tight mb-6">{t('auth.registerBannerTitle')}</h1>
           <p className="text-white/80 text-xl font-medium mb-12">
             Hàng ngàn ưu đãi hấp dẫn đang chờ đón bạn. Đăng ký ngay để trải nghiệm dịch vụ đi chợ online tiện lợi nhất.
           </p>
@@ -322,7 +324,7 @@ const Register: React.FC = () => {
           </div>
 
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 mb-2">Tạo tài khoản mới</h2>
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 mb-2">{t('auth.createAccount')}</h2>
             <p className="text-slate-600 dark:text-slate-400">
               Bạn đã có tài khoản?{' '}
               <Link to="/login" className="text-primary font-bold hover:underline">
@@ -367,21 +369,61 @@ const Register: React.FC = () => {
 
           <div className="relative flex items-center py-5 mb-6 w-full">
             <div className="grow border-t border-slate-200 dark:border-slate-700" />
-            <span className="shrink mx-4 text-slate-400 text-sm font-medium">Hoặc đăng ký bằng Email</span>
+            <span className="shrink mx-4 text-slate-400 text-sm font-medium">{t('auth.orRegisterWithEmail')}</span>
             <div className="grow border-t border-slate-200 dark:border-slate-700" />
           </div>
 
           {/* Form */}
           <form className="space-y-4 w-full" onSubmit={onSubmit}>
-            {errors.form && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">{errors.form}</div>}
+            {errors.form && (() => {
+              const formError = errors.form || '';
+              const isGoogleCollision = formError.includes('[PROVIDER_COLLISION_GOOGLE]') || formError.includes('[USE_GOOGLE_LOGIN]');
+              const isFacebookCollision = formError.includes('[PROVIDER_COLLISION_FACEBOOK]') || formError.includes('[USE_FACEBOOK_LOGIN]');
+              const cleanMessage = formError.replace(/\[[\w_]+\]\s*/g, '');
+
+              if (isGoogleCollision) {
+                return (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <span className="font-bold text-blue-800">Tài khoản Google</span>
+                    </div>
+                    <p className="text-blue-700">{cleanMessage}</p>
+                    <Link to="/login" className="inline-block mt-2 text-sm font-bold text-blue-600 hover:underline">← Quay về trang đăng nhập</Link>
+                  </div>
+                );
+              }
+
+              if (isFacebookCollision) {
+                return (
+                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                      </svg>
+                      <span className="font-bold text-indigo-800">Tài khoản Facebook</span>
+                    </div>
+                    <p className="text-indigo-700">{cleanMessage}</p>
+                    <Link to="/login" className="inline-block mt-2 text-sm font-bold text-indigo-600 hover:underline">← Quay về trang đăng nhập</Link>
+                  </div>
+                );
+              }
+
+              return <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">{cleanMessage}</div>;
+            })()}
             {authState.successMessage && !errors.form && (
               <div className="p-3 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium">{authState.successMessage}</div>
             )}
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Họ và tên</label>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('auth.fullName')}</label>
               <input
                 className={`w-full h-12 px-4 rounded-xl border ${errors.username ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all`}
-                placeholder="Nhập họ và tên"
+                placeholder={t('auth.fullName')}
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
@@ -407,7 +449,7 @@ const Register: React.FC = () => {
               </label>
               <input
                 className={`w-full h-12 px-4 rounded-xl border ${errors.phone ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all`}
-                placeholder="Nhập số điện thoại"
+                placeholder={t('auth.phoneNumber')}
                 type="text"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
@@ -417,7 +459,7 @@ const Register: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Mật khẩu</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('auth.password')}</label>
                 <div className="relative flex items-center group">
                   <input
                     className={`w-full h-12 pl-4 pr-12 rounded-xl border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all`}
@@ -441,7 +483,7 @@ const Register: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Xác nhận mật khẩu</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('auth.confirmPassword')}</label>
                 <div className="relative flex items-center group">
                   <input
                     className={`w-full h-12 pl-4 pr-12 rounded-xl border ${errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all`}
@@ -481,26 +523,26 @@ const Register: React.FC = () => {
                 ))}
               </div>
               <p className="text-xs font-semibold text-slate-500">
-                Độ bảo mật: <span className="text-primary">{['Yếu', 'Trung bình', 'Khá', 'Mạnh'][passwordStrength] || 'Yếu'}</span>
+                Độ bảo mật: <span className="text-primary">{[t('auth.weak'), t('auth.medium'), t('auth.good'), t('auth.strong')][passwordStrength] || t('auth.weak')}</span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className={`flex items-center gap-2 text-xs ${password.length >= 8 ? 'text-primary font-medium' : 'text-slate-400'}`}>
                   <span className="material-symbols-outlined text-[14px]">
                     {password.length >= 8 ? 'check_circle' : 'circle'}
                   </span>
-                  <span>Tối thiểu 8 ký tự</span>
+                  <span>{t('auth.min8chars')}</span>
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${/[A-Z]/.test(password) ? 'text-primary font-medium' : 'text-slate-400'}`}>
                   <span className="material-symbols-outlined text-[14px]">
                     {/[A-Z]/.test(password) ? 'check_circle' : 'circle'}
                   </span>
-                  <span>Ít nhất 1 chữ in hoa</span>
+                  <span>{t('auth.min1uppercase')}</span>
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${/[0-9]/.test(password) ? 'text-primary font-medium' : 'text-slate-400'}`}>
                   <span className="material-symbols-outlined text-[14px]">
                     {/[0-9]/.test(password) ? 'check_circle' : 'circle'}
                   </span>
-                  <span>Ít nhất 1 chữ số</span>
+                  <span>{t('auth.min1number')}</span>
                 </div>
               </div>
             </div>
@@ -520,7 +562,7 @@ const Register: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-sm text-slate-600 dark:text-slate-400 leading-tight">
-                    Tôi đồng ý với các{' '}
+                    {t('auth.iAgree')}{' '}
                     <a className="text-primary font-bold hover:underline" href="#">
                       Điều khoản dịch vụ
                     </a>{' '}
@@ -528,7 +570,7 @@ const Register: React.FC = () => {
                     <a className="text-primary font-bold hover:underline" href="#">
                       Chính sách bảo mật
                     </a>{' '}
-                    của Lotte Mart.
+                    {t('auth.ofLotteMart')}
                   </span>
                   {errors.terms && <div className="text-red-500 text-xs mt-1">{errors.terms}</div>}
                 </div>
@@ -559,8 +601,8 @@ const Register: React.FC = () => {
               <span className="material-symbols-outlined">close</span>
             </button>
 
-            <h3 className="text-xl font-bold mb-2">Xác thực email đăng ký</h3>
-            <p className="text-sm text-slate-500 mb-4">Nhập mã OTP đã gửi tới email của bạn để kích hoạt tài khoản.</p>
+            <h3 className="text-xl font-bold mb-2">{t('auth.verifyRegEmail')}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t('auth.enterOtpToActivate')}</p>
 
             <div className="mb-3">
               <label className="block text-sm font-semibold mb-1">Email</label>
@@ -589,11 +631,7 @@ const Register: React.FC = () => {
                   disabled={otpSending || otpCooldown > 0}
                   className="px-3 py-2 rounded-lg border border-primary text-primary font-bold hover:bg-primary/5 disabled:opacity-60"
                 >
-                  {otpSending
-                    ? 'Đang gửi...'
-                    : otpCooldown > 0
-                      ? `Gửi lại sau ${otpCooldown}s`
-                      : 'Gửi lại OTP'}
+                  {otpSending ? t('auth.verifyingEmail') : otpCooldown > 0 ? t('auth.resendOTP', { seconds: otpCooldown }) : t('auth.sendOTP')}
                 </button>
               </div>
             </div>

@@ -23,9 +23,13 @@ export interface User {
   membership_level: string;
   signup_method?: string;
   login_provider?: 'local' | 'google' | 'facebook' | 'phone';
+  auth_provider?: 'LOCAL' | 'GOOGLE' | 'FACEBOOK' | 'PHONE' | 'LOCAL_GOOGLE_LINKED' | 'LOCAL_FACEBOOK_LINKED';
+  has_password?: boolean;
+  password_changed_at?: string;
   email_verified?: boolean;
   provider?: string;
   googleId?: string | null;
+  facebookId?: string | null;
   is_active?: boolean;
   status?: string;
   dob?: string;
@@ -38,6 +42,7 @@ export interface User {
   default_payment_method?: { type: string; last4: string; brand: string; card_id: string };
   wallet_balance?: number;
   social_links?: { facebook: string | null; google: string | null };
+  social_providers?: Array<{ provider: string; provider_user_id: string }>;
   created_at?: string;
   updated_at?: string;
   last_login_at?: string;
@@ -57,7 +62,9 @@ export interface User {
   };
   security?: {
     two_factor_enabled?: boolean;
+    two_factor_method?: 'EMAIL' | 'TOTP' | null;
     last_login_device?: string;
+    last_login_ip?: string;
     last_login_at?: string;
   };
   settings?: {
@@ -673,7 +680,12 @@ export interface SupportTicket {
   status: string;
   priority?: string;
   category?: string;
+  order_id?: string | number | null;
+  attachments?: string[];
+  thread?: any[];
   assigned_to?: number | null;
+  assigned_agent_id?: number | string | null;
+  assigned_agent_name?: string;
   closed_at?: string | null;
   internal_note?: string;
   created_at: string;
@@ -689,6 +701,7 @@ export interface Message {
   sender_name?: string;
   sender_id: number | string;
   content: string;
+  attachments?: string[];
   created_at: string;
 }
 

@@ -7,7 +7,7 @@
 import mongoose from 'mongoose';
 
 const featureFlagSchema = new mongoose.Schema({
-  key: { type: String, required: true, unique: true, index: true },
+  key: { type: String, required: true, unique: true },
   enabled: { type: Boolean, default: false },
   description: { type: String, default: '' },
   percentage: { type: Number, default: 100, min: 0, max: 100 }, // Gradual rollout

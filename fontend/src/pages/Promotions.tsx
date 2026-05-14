@@ -5,8 +5,10 @@ import { hotDealService } from '../services/hotDealService';
 import { promotionService } from '../services/promotionService';
 import { couponService } from '../services/couponService';
 import { useAppSelector, store } from '../store';
+import { useTranslation } from 'react-i18next';
 
 const Promotions: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const [toastMessage, setToastMessage] = useState('');
@@ -94,7 +96,7 @@ const Promotions: React.FC = () => {
          itemType: w.code ? 'coupon' : 'promotion',
          title: w.title || w.code || 'Voucher',
          image_url: w.image || w.image_url || 'https://images.unsplash.com/photo-1607082349566-187342175e1f?w=400&q=80',
-         badge: w.voucher_type === 'shipping' ? 'VẬN CHUYỂN' : 'SẢN PHẨM',
+         badge: w.voucher_type === 'shipping' ? t('promotions.shippingVoucher') : t('promotions.productVoucher'),
          user_claimed: true,
       }));
       return list;
@@ -105,7 +107,7 @@ const Promotions: React.FC = () => {
       id: pr.id || pr._id, 
       itemType: 'promotion', 
       image_url: pr.image_url || pr.image || pr.banner_image || '', 
-      badge: pr.voucher_type === 'shipping' ? 'VẬN CHUYỂN' : 'SẢN PHẨM',
+      badge: pr.voucher_type === 'shipping' ? t('promotions.shippingVoucher') : t('promotions.productVoucher'),
       voucher_type: pr.voucher_type || 'product',
       user_claimed: myWallet.some(w => (w.walletItemType === 'promotion') && (String(w.id) === String(pr._id) || String(w.id) === String(pr.id)))
     }));
@@ -119,7 +121,7 @@ const Promotions: React.FC = () => {
       start_date: cu.start_date || cu.valid_from, 
       end_date: cu.end_date || cu.valid_until, 
       image_url: cu.image || cu.image_url || cu.banner_image || 'https://images.unsplash.com/photo-1607082349566-187342175e1f?w=400&q=80', 
-      badge: cu.voucher_type === 'shipping' ? 'VẬN CHUYỂN' : 'SẢN PHẨM',
+      badge: cu.voucher_type === 'shipping' ? t('promotions.shippingVoucher') : t('promotions.productVoucher'),
       voucher_type: cu.voucher_type || 'product',
       user_claimed: myWallet.some(w => (w.walletItemType === 'coupon') && (String(w.id) === String(cu._id) || String(w.id) === String(cu.id)))
     }));
@@ -170,7 +172,7 @@ const Promotions: React.FC = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    showToast(`Đã sao chép: ${text}`);
+    showToast(`${t('promotions.copied')} ${text}`);
   };
 
   const handleHeroBuy = () => {
@@ -185,7 +187,7 @@ const Promotions: React.FC = () => {
     e.stopPropagation();
     const { isAuthenticated, user: authUser } = store.getState().auth;
     if (!isAuthenticated && !authUser && !user) {
-      showToast('Vui lòng đăng nhập để nhận voucher!');
+      showToast(t('promotions.loginToClaim'));
       return;
     }
 
@@ -201,13 +203,13 @@ const Promotions: React.FC = () => {
         res = { success: !!claimResult?.success, message: claimResult?.message };
       }
       if (res.success) {
-        showToast('Nhận voucher thành công! Đã thêm vào ví.');
+        showToast(t('promotions.claimSuccess'));
         await fetchData(); // Refresh wallet
       } else {
-        showToast(res.message || 'Không thể nhận voucher');
+        showToast(res.message || t('promotions.claimFailed'));
       }
     } catch (err: any) {
-      const errMsg = err?.response?.data?.message || err?.message || 'Đã có lỗi xảy ra';
+      const errMsg = err?.response?.data?.message || err?.message || t('common.error');
       showToast(errMsg);
     } finally {
       setClaimingId(null);
@@ -230,17 +232,17 @@ const Promotions: React.FC = () => {
             <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/50 to-transparent flex items-center px-6 md:px-12">
               <div className="max-w-lg text-white">
                 <span className="bg-lotteYellow text-black font-bold px-3 py-1 rounded text-sm uppercase mb-4 inline-block shadow-sm">
-                  {heroBanner.promotion_badge || "Sự kiện Nổi Bật"}
+                  {heroBanner.promotion_badge || t('promotions.heroBadge')}
                 </span>
                 <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight shadow-sm text-white drop-shadow-lg" dangerouslySetInnerHTML={{__html: heroBanner.title}}></h1>
                 <p className="text-lg md:text-xl opacity-100 font-medium mb-8 drop-shadow-md text-white/90" dangerouslySetInnerHTML={{__html: heroBanner.description}}></p>
                 <div className="flex space-x-4">
                   <button onClick={handleHeroBuy} className="bg-lotteRed hover:bg-red-700 text-white font-bold py-3 px-6 md:px-8 rounded-xl transition duration-300 shadow-lg cursor-pointer">
-                    Săn Voucher Ngay
+                    {t('promotions.huntVoucher')}
                   </button>
                   {heroBanner.link && (
                     <button onClick={() => navigate(heroBanner.link)} className="bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-md text-white font-bold py-3 px-6 md:px-8 rounded-xl transition duration-300 cursor-pointer">
-                      Xem chi tiết
+                      {t('promotions.viewDetail')}
                     </button>
                   )}
                 </div>
@@ -252,8 +254,8 @@ const Promotions: React.FC = () => {
         {/* Voucher Center Title */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4" id="promotion-section">
            <div>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Trung Tâm Voucher</h2>
-              <p className="text-gray-500 font-medium mt-1">Sưu tầm voucher để tiết kiệm hơn mỗi ngày</p>
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{t('promotions.voucherCenter')}</h2>
+              <p className="text-gray-500 font-medium mt-1">{t('promotions.voucherCenterDesc')}</p>
            </div>
         </div>
 
@@ -269,25 +271,25 @@ const Promotions: React.FC = () => {
                   onClick={() => setActiveTab('all')} 
                   className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'all' ? 'border-lotteRed text-lotteRed' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                  >
-                    Tất cả Khuyến mãi
+                    {t('promotions.allPromotions')}
                  </button>
                  <button 
                   onClick={() => setActiveTab('product')} 
                   className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'product' ? 'border-lotteRed text-lotteRed' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                  >
-                    <span className="material-symbols-outlined text-[18px]">shopping_bag</span> Voucher Sản Phẩm
+                    <span className="material-symbols-outlined text-[18px]">shopping_bag</span> {t('promotions.productVoucher')}
                  </button>
                  <button 
                   onClick={() => setActiveTab('shipping')} 
                   className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'shipping' ? 'border-lotteRed text-lotteRed' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                  >
-                    <span className="material-symbols-outlined text-[18px]">local_shipping</span> Freeship
+                    <span className="material-symbols-outlined text-[18px]">local_shipping</span> {t('promotions.shippingVoucher')}
                  </button>
                  <button 
                   onClick={() => setActiveTab('my_wallet')} 
                   className={`px-5 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ml-auto ${activeTab === 'my_wallet' ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                  >
-                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span> Ví Voucher ({myWallet.length})
+                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span> {t('promotions.myWallet')} ({myWallet.length})
                  </button>
               </div>
 
@@ -296,22 +298,22 @@ const Promotions: React.FC = () => {
                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                    <input 
                      type="text" 
-                     placeholder="Tìm tên khuyến mãi, mã code..." 
+                     placeholder={t('promotions.searchPlaceholder')} 
                      value={searchQuery}
                      onChange={(e) => setSearchQuery(e.target.value)}
                      className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-transparent focus:bg-white focus:border-lotteRed rounded-lg outline-none transition-all text-sm"
                    />
                 </div>
                 <div className="flex items-center space-x-2 text-sm w-full md:w-auto">
-                  <span className="text-gray-500 whitespace-nowrap font-medium">Sắp xếp:</span>
+                  <span className="text-gray-500 whitespace-nowrap font-medium">{t('common.sortBy')}:</span>
                   <select 
                     value={sortOption} 
                     onChange={(e) => setSortOption(e.target.value)}
                     className="border border-gray-200 bg-white dark:bg-slate-800 rounded-lg py-1.5 px-3 text-sm outline-none font-semibold w-full md:w-auto"
                   >
-                    <option value="newest">Mới nhất</option>
-                    <option value="discount">Giảm nhiều nhất</option>
-                    <option value="ending_soon">Sắp hết hạn</option>
+                    <option value="newest">{t('promotions.sortNewest')}</option>
+                    <option value="discount">{t('promotions.sortDiscount')}</option>
+                    <option value="ending_soon">{t('promotions.sortEndingSoon')}</option>
                   </select>
                 </div>
               </div>
@@ -335,13 +337,13 @@ const Promotions: React.FC = () => {
             ) : currentItems.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-xl shadow-sm text-gray-500 flex flex-col items-center border border-gray-100">
                    <span className="material-symbols-outlined text-6xl mb-4 text-gray-200">confirmation_number</span>
-                   <p className="font-bold text-lg mb-1">Không tìm thấy voucher nào!</p>
+                   <p className="font-bold text-lg mb-1">{t('promotions.noVouchers')}</p>
                    {activeTab === 'my_wallet' ? (
-                     <p className="text-sm">Ví voucher của bạn đang trống. Hãy qua tab Tất cả để săn ngay!</p>
+                     <p className="text-sm">{t('promotions.noVouchersWallet')}</p>
                    ) : (
-                     <p className="text-sm">Vui lòng thử lại với từ khóa khác.</p>
+                     <p className="text-sm">{t('promotions.noVouchersSearch')}</p>
                    )}
-                   <button onClick={() => { setSearchQuery(''); setActiveTab('all'); }} className="mt-6 px-6 py-2 bg-lotteRed text-white rounded-lg font-bold hover:bg-red-700 transition">Khám phá voucher</button>
+                   <button onClick={() => { setSearchQuery(''); setActiveTab('all'); }} className="mt-6 px-6 py-2 bg-lotteRed text-white rounded-lg font-bold hover:bg-red-700 transition">{t('promotions.exploreVouchers')}</button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4 relative">
@@ -406,31 +408,31 @@ const Promotions: React.FC = () => {
                                        </div>
                                      )}
                                      <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
-                                        {isSoldOut ? 'Đã hết lượt' : isExpired ? 'Đã hết hạn' : isCoupon && item.end_date ? `HSD: ${new Date(item.end_date).toLocaleDateString('vi-VN')}` : 'Không thời hạn'}
+                                        {isSoldOut ? t('promotions.soldOut') : isExpired ? t('promotions.expired') : isCoupon && item.end_date ? `HSD: ${new Date(item.end_date).toLocaleDateString('vi-VN')}` : t('promotions.unlimited')}
                                      </span>
                                   </div>
                                   
                                   {/* Claim Button */}
                                   {activeTab === 'my_wallet' ? (
                                     <button 
-                                      onClick={(e) => { e.stopPropagation(); showToast('Voucher đã nằm trong ví, hãy sử dụng khi Checkout!'); }}
+                                      onClick={(e) => { e.stopPropagation(); showToast(t('promotions.inWalletMsg')); }}
                                       className="px-5 py-1.5 bg-black text-white text-xs font-bold rounded hover:bg-gray-800 transition shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
                                     >
-                                      Trong ví
+                                      {t('promotions.inWallet')}
                                     </button>
                                   ) : isClaimed ? (
                                     <button 
                                       onClick={(e) => e.stopPropagation()}
                                       className="px-5 py-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-bold rounded transition whitespace-nowrap cursor-default"
                                     >
-                                      ✓ Đã nhận
+                                      ✓ {t('promotions.claimed')}
                                     </button>
                                   ) : isLocked ? (
                                     <button 
                                       disabled
                                       className="px-5 py-1.5 bg-gray-100 text-gray-400 text-xs font-bold rounded cursor-not-allowed whitespace-nowrap"
                                     >
-                                      Hết lượt
+                                      {t('promotions.locked')}
                                     </button>
                                   ) : (
                                     <button 
@@ -438,7 +440,7 @@ const Promotions: React.FC = () => {
                                       disabled={claimingId === itemId}
                                       className={`px-5 py-1.5 text-white text-xs font-bold rounded hover:bg-red-700 transition shadow-sm active:scale-95 whitespace-nowrap ${claimingId === itemId ? 'bg-red-400 cursor-wait' : 'bg-lotteRed'}`}
                                     >
-                                      {claimingId === itemId ? 'Đang lấy...' : 'Nhận Voucher'}
+                                      {claimingId === itemId ? t('promotions.claiming') : t('promotions.claimVoucher')}
                                     </button>
                                   )}
                                </div>
@@ -500,13 +502,13 @@ const Promotions: React.FC = () => {
                        <span className="material-symbols-outlined text-white">account_balance_wallet</span>
                      </div>
                      <div>
-                       <h3 className="font-bold">Ví Voucher của bạn</h3>
-                       <p className="text-xs text-gray-400">Đã sưu tầm: <strong className="text-white">{myWallet.length} mã</strong></p>
+                       <h3 className="font-bold">{t('promotions.walletSummary')}</h3>
+                       <p className="text-xs text-gray-400">{t('promotions.collected')}: <strong className="text-white">{myWallet.length} {t('promotions.codes')}</strong></p>
                      </div>
                    </div>
                    
                    <button onClick={() => setActiveTab('my_wallet')} className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold transition">
-                     Xem tất cả ví
+                     {t('promotions.viewAllWallet')}
                    </button>
                  </div>
                  <div className="absolute -right-4 -bottom-4 text-white/5 pointer-events-none">
@@ -520,10 +522,10 @@ const Promotions: React.FC = () => {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-black flex items-center uppercase tracking-tight text-gray-900 dark:text-white">
                   <span className="material-symbols-outlined text-orange-500 mr-2 text-2xl fill-1">local_fire_department</span>
-                  Hot Deals
+                  {t('promotions.hotDeals')}
                 </h2>
                 <a className="text-xs text-blue-600 font-bold hover:underline cursor-pointer bg-blue-50 px-2 py-1 rounded" onClick={() => navigate('/products')}>
-                  Vào shop
+                  {t('promotions.goShop')}
                 </a>
               </div>
               <div className="space-y-4">
@@ -542,7 +544,7 @@ const Promotions: React.FC = () => {
                           )}
                       </div>
                       <div className="grow min-w-0">
-                          <h4 className="text-sm font-bold line-clamp-1 text-gray-800 dark:text-white group-hover:text-lotteRed transition-colors" title={deal.title}>{deal.title || `Sản phẩm Deal`}</h4>
+                          <h4 className="text-sm font-bold line-clamp-1 text-gray-800 dark:text-white group-hover:text-lotteRed transition-colors" title={deal.title}>{deal.title || t('promotions.productDeal')}</h4>
                           <div className="flex items-baseline space-x-2 mt-0.5">
                              {deal.price && <span className="text-lotteRed font-bold text-sm tracking-tight">{deal.price.toLocaleString('vi-VN')}đ</span>}
                              {deal.original_price && <span className="text-gray-400 line-through text-[10px]">{deal.original_price.toLocaleString('vi-VN')}đ</span>}
@@ -552,7 +554,7 @@ const Promotions: React.FC = () => {
                 ))}
 
                 {hotDeals.length === 0 && !loading && (
-                    <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">Chưa có Hot Deals lúc này.</p>
+                    <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">{t('promotions.noHotDeals')}</p>
                 )}
               </div>
             </section>
@@ -561,12 +563,11 @@ const Promotions: React.FC = () => {
             <section className="space-y-4">
               <div onClick={() => { setActiveTab('shipping'); document.getElementById('promotion-section')?.scrollIntoView({ behavior: 'smooth' }); }} className="bg-linear-to-br from-teal-400 to-teal-600 rounded-xl p-6 relative overflow-hidden group cursor-pointer shadow-md border hover:border-teal-400 transition">
                 <div className="relative z-10">
-                  <h3 className="text-xl font-extrabold mb-1 text-white opacity-100 inline-block drop-shadow-md uppercase">Voucher Freeship</h3>
-                  <p className="text-sm text-teal-50 font-medium mb-4 drop-shadow-sm">
-                    Miễn phí vận chuyển <br /> tận nhà cho mọi đơn.
+                  <h3 className="text-xl font-extrabold mb-1 text-white opacity-100 inline-block drop-shadow-md uppercase">{t('promotions.freeShipTitle')}</h3>
+                  <p className="text-sm text-teal-50 font-medium mb-4 drop-shadow-sm" dangerouslySetInnerHTML={{ __html: t('promotions.freeShipDesc') }}>
                   </p>
                   <span className="inline-block bg-white text-teal-700 text-xs font-bold px-4 py-1.5 rounded-full uppercase shadow-sm group-hover:bg-teal-50 transition">
-                    Săn Ngay
+                    {t('promotions.huntNow')}
                   </span>
                 </div>
                 <span className="material-symbols-outlined absolute -right-2 -bottom-4 text-8xl text-white/20 group-hover:scale-110 transition-transform duration-500 rotate-12">moped</span>
@@ -620,7 +621,7 @@ const Promotions: React.FC = () => {
                       <div className="flex gap-3 text-sm">
                          <span className="material-symbols-outlined text-gray-400">receipt_long</span>
                          <p className="text-gray-600 dark:text-gray-300 font-medium">
-                            Đơn tối thiểu: <span className="font-bold text-gray-900 dark:text-white">{(selectedItem.min_order || selectedItem.min_order_value || selectedItem.min_order_amount || 0).toLocaleString('vi-VN')}đ</span>
+                            {t('promotions.minOrder')} <span className="font-bold text-gray-900 dark:text-white">{(selectedItem.min_order || selectedItem.min_order_value || selectedItem.min_order_amount || 0).toLocaleString('vi-VN')}đ</span>
                          </p>
                       </div>
                    )}
@@ -629,10 +630,10 @@ const Promotions: React.FC = () => {
                       <div className="flex gap-3 text-sm">
                          <span className="material-symbols-outlined text-gray-400">schedule</span>
                          <p className="text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
-                            Hạn sử dụng:<br/>
+                            {t('promotions.expiryDate')}<br/>
                             <span className="font-bold text-gray-900 dark:text-white text-xs mt-1 inline-block">
                                {selectedItem.start_date ? new Date(selectedItem.start_date).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '...'} - 
-                               {selectedItem.end_date ? new Date(selectedItem.end_date).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : ' Vô thời hạn'}
+                               {selectedItem.end_date ? new Date(selectedItem.end_date).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : ` ${t('promotions.noExpiry')}`}
                             </span>
                          </p>
                       </div>
@@ -647,14 +648,14 @@ const Promotions: React.FC = () => {
                        onClick={() => setSelectedItem(null)} 
                        className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold text-base hover:bg-green-700 transition flex items-center justify-center shadow-lg mt-6 cursor-pointer"
                     >
-                       ✓ Đã nhận — Đóng
+                       ✓ {t('promotions.claimed')} — {t('promotions.close')}
                     </button>
                 ) : (
                     <button 
                        onClick={(e) => { handleClaim(e, selectedItem); }} 
                        className={`w-full text-white py-3.5 rounded-xl font-bold text-base transition flex items-center justify-center shadow-lg mt-6 cursor-pointer ${selectedItem.voucher_type === 'shipping' ? 'bg-teal-500 hover:bg-teal-600 shadow-teal-500/30' : 'bg-lotteRed hover:bg-red-700 shadow-red-500/30'}`}
                     >
-                       Nhận Voucher 
+                       {t('promotions.claimVoucher')} 
                     </button>
                 )}
                 {selectedItem.itemType === 'coupon' && selectedItem.code && (
@@ -662,7 +663,7 @@ const Promotions: React.FC = () => {
                       onClick={() => copyToClipboard(selectedItem.code)} 
                       className="w-full mt-3 bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition border border-gray-200"
                    >
-                      Sao chép mã code
+                      {t('promotions.copyCode')}
                    </button>
                 )}
              </div>

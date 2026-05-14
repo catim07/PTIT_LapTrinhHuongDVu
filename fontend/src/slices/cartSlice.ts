@@ -249,6 +249,25 @@ export const cartSlice = createSlice({
       state.error = null;
       localStorage.removeItem(STORAGE_KEY);
     },
+
+    /** Used by Socket.IO to sync cart state in real-time */
+    updateCartFromServer: (state, action: PayloadAction<{ branch_id: string; cart?: any; cleared?: boolean }>) => {
+      const { branch_id, cart, cleared } = action.payload;
+      if (cleared) {
+        if (branch_id === 'all') {
+          state.itemsByBranch = {};
+        } else {
+          state.itemsByBranch[branch_id] = [];
+        }
+      } else if (cart && Array.isArray(cart.items)) {
+        // Enforce single branch cart locally if replacing from server
+        Object.keys(state.itemsByBranch).forEach(k => {
+          if (k !== String(branch_id)) delete state.itemsByBranch[k];
+        });
+        state.itemsByBranch[branch_id] = normalizeItems(cart.items);
+      }
+      saveState(state);
+    },
   },
   extraReducers: (builder) => {
     // ─── loadAllBranchCarts ───
@@ -395,6 +414,7 @@ export const {
   clearCart,
   clearCartByBranch,
   resetCartState,
+  updateCartFromServer,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

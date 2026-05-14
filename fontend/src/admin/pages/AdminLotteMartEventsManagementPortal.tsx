@@ -283,7 +283,7 @@ const AdminLotteMartEventsManagementPortal: React.FC = () => {
       await loadData();
       const actionText = action === "delete" ? "xóa" : action === "publish" ? "xuất bản" : "lưu trữ";
       showToastMsg(`Đã ${actionText} ${ids.length} sự kiện`);
-    } catch (error) {
+    } catch (_error) {
       showToastMsg("Có lỗi xảy ra");
     } finally {
       setSaving(false);

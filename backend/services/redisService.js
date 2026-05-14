@@ -1,55 +1,93 @@
 import Redis from 'ioredis';
-import { CircuitBreaker } from '../utils/circuitBreaker.js';
 
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const redis = new Redis(redisUrl, {
-  lazyConnect: true,
-  maxRetriesPerRequest: 1,
-  retryStrategy: (times) => {
-    if (times > 2) return null; // stop retrying
-    return 1000;
-  }
-});
-
 let isConnected = false;
+let connectionAttempted = false;
 const memoryCache = new Map();
 const memoryLocks = new Set();
 
-const redisBreaker = new CircuitBreaker('Redis', {
-  failureThreshold: 3,
-  resetTimeout: 30000,
-  fallback: () => {
-    isConnected = false;
-    return null;
-  }
-});
+// ─── Create Redis client with safe defaults ─────────────────────
+let redis = null;
+try {
+  redis = new Redis(redisUrl, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    retryStrategy: (times) => {
+      if (times > 3) {
+        // Stop retrying — stay in in-memory mode
+        return null;
+      }
+      return Math.min(times * 1000, 5000);
+    },
+    reconnectOnError: () => false, // do not auto-reconnect on command errors
+  });
 
-redis.connect().then(() => {
-  isConnected = true;
-  console.log('✅ Redis connected successfully.');
-}).catch((err) => {
-  console.warn('⚠️ Redis connection failed. Falling back to in-memory mode.', err.message);
-});
+  // Suppress unhandled error events (ioredis emits these repeatedly)
+  redis.on('error', (err) => {
+    if (!connectionAttempted) return; // will log during connect attempt
+    if (isConnected) {
+      console.warn('[Redis] Connection lost:', err.message);
+      isConnected = false;
+    }
+    // Suppress repeated ECONNREFUSED spam — already logged once
+  });
+
+  redis.on('connect', () => {
+    isConnected = true;
+    console.log('✅ Redis connected successfully.');
+  });
+
+  redis.on('close', () => {
+    if (isConnected) {
+      console.warn('[Redis] Connection closed.');
+      isConnected = false;
+    }
+  });
+} catch (err) {
+  console.warn('[Redis] Client creation failed:', err.message);
+}
+
+// Attempt initial connection (non-blocking)
+if (redis) {
+  connectionAttempted = true;
+  redis.connect().then(() => {
+    isConnected = true;
+  }).catch((err) => {
+    console.warn('⚠️ Redis unavailable — using in-memory fallback.', err.message);
+    isConnected = false;
+  });
+}
+
+// ─── Memory cache cleanup (prevent memory leak) ─────────────────
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, item] of memoryCache) {
+    if (now > item.exp) memoryCache.delete(key);
+  }
+}, 60000); // clean every 60s
+
+// ─── Cache operations with safe fallback ────────────────────────
 
 export const setCache = async (key, value, ttlSeconds = 60) => {
-  if (isConnected && redisBreaker.state !== 'OPEN') {
+  if (isConnected && redis) {
     try {
-      await redisBreaker.fire(() => redis.set(key, JSON.stringify(value), 'EX', ttlSeconds));
+      await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
       return;
     } catch (e) {
-      isConnected = false;
+      // Silently fall through to memory cache
     }
   }
   memoryCache.set(key, { value, exp: Date.now() + ttlSeconds * 1000 });
 };
 
 export const getCache = async (key) => {
-  if (isConnected && redisBreaker.state !== 'OPEN') {
+  if (isConnected && redis) {
     try {
-      const data = await redisBreaker.fire(() => redis.get(key));
+      const data = await redis.get(key);
       return data ? JSON.parse(data) : null;
     } catch (e) {
-      isConnected = false;
+      // Fall through to memory cache
     }
   }
   const item = memoryCache.get(key);
@@ -62,15 +100,13 @@ export const getCache = async (key) => {
 };
 
 export const deleteCachePattern = async (pattern) => {
-  if (isConnected && redisBreaker.state !== 'OPEN') {
+  if (isConnected && redis) {
     try {
-      await redisBreaker.fire(async () => {
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) await redis.del(...keys);
-      });
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) await redis.del(...keys);
       return;
     } catch (e) {
-      isConnected = false;
+      // Fall through to memory cleanup
     }
   }
   const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
@@ -80,18 +116,16 @@ export const deleteCachePattern = async (pattern) => {
 };
 
 export const acquireLock = async (key, ttlSeconds = 5) => {
-  if (isConnected && redisBreaker.state !== 'OPEN') {
+  if (isConnected && redis) {
     try {
-      return await redisBreaker.fire(async () => {
-        const result = await redis.setnx(`lock:${key}`, '1');
-        if (result) {
-          await redis.expire(`lock:${key}`, ttlSeconds);
-          return true;
-        }
-        return false;
-      });
+      const result = await redis.setnx(`lock:${key}`, '1');
+      if (result) {
+        await redis.expire(`lock:${key}`, ttlSeconds);
+        return true;
+      }
+      return false;
     } catch (e) {
-      isConnected = false;
+      // Fall through to memory lock
     }
   }
   if (memoryLocks.has(key)) return false;
@@ -101,12 +135,12 @@ export const acquireLock = async (key, ttlSeconds = 5) => {
 };
 
 export const releaseLock = async (key) => {
-  if (isConnected && redisBreaker.state !== 'OPEN') {
+  if (isConnected && redis) {
     try {
-      await redisBreaker.fire(() => redis.del(`lock:${key}`));
+      await redis.del(`lock:${key}`);
       return;
     } catch (e) {
-      isConnected = false;
+      // Fall through to memory lock cleanup
     }
   }
   memoryLocks.delete(key);

@@ -36,7 +36,7 @@ const AdminBranchLocations: React.FC = () => {
   const [geoL, setGeoL] = useState(false);
   const [dupes, setDupes] = useState<any[]>([]);
   const [showRadius, setShowRadius] = useState(true);
-  const gt = useRef<ReturnType<typeof setTimeout>>();
+  const gt = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const show = (t:'s'|'e',m:string) => { setToast({t,m}); setTimeout(()=>setToast(null),3500); };
   const bId = (b:Branch) => String(b.id||(b as any)._id||'');

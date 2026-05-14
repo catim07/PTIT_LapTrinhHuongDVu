@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store';
 import { loadOrders, cancelOrderThunk } from '../slices/orderSlice';
@@ -6,8 +7,11 @@ import { reorderFromOrder } from '../slices/cartSlice';
 import { toast } from '../components/Toast/toastEvent';
 import { dataService } from '../services/dataService';
 import { supportService } from '../services/supportService';
+import { resolveImageUrl } from '../utils/imageUrl';
+import { reviewService } from '../services/reviewService';
 
 const OrderDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -22,12 +26,17 @@ const OrderDetail: React.FC = () => {
   };
   
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [_showEditAddressModal, setShowEditAddressModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewItem, setReviewItem] = useState<any>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [supportIssue, setSupportIssue] = useState('');
-  const [supportCategory, setSupportCategory] = useState('order_issue');
+  const [supportCategory, setSupportCategory] = useState('general');
+  const [submittedReviews, setSubmittedReviews] = useState<Set<string>>(new Set());
   
   const order = orders.find(o => String(o.id) === orderId);
 
@@ -37,13 +46,38 @@ const OrderDetail: React.FC = () => {
     }
   }, [status, currentUserId, dispatch]);
 
-  if (status === 'loading') return <div className="text-center p-10 font-bold">Đang tải chi tiết đơn hàng...</div>;
-  if (!order) return <div className="text-center p-10"><p className="text-slate-500">Không tìm thấy đơn hàng</p></div>;
+  if (status === 'loading') return <div className="text-center p-10 font-bold">{t('orderDetail.loading')}</div>;
+  if (!order) return <div className="text-center p-10"><p className="text-slate-500">{t('orderDetail.notFound')}</p></div>;
 
   const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
   const isCancellable = CANCELLABLE_STATUSES.includes(order.status);
-  const isShippedOrLater = ['SHIPPING', 'DELIVERED', 'RETURNED'].includes(order.status);
   const isCompletedOrCancelled = ['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(order.status);
+  const isDelivered = ['COMPLETED', 'DELIVERED'].includes(order.status);
+
+  const handleSubmitReview = async () => {
+    if (!reviewItem || !reviewComment.trim()) {
+      toast.error(t('orderDetail.reviewValidation'));
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await reviewService.create(reviewItem.product_id || reviewItem.branch_product_id, {
+        rating: reviewRating,
+        comment: reviewComment,
+        order_id: order.id,
+      });
+      toast.success(t('orderDetail.reviewSuccess'));
+      setSubmittedReviews(prev => new Set([...prev, String(reviewItem.product_id || reviewItem.branch_product_id)]));
+      setShowReviewModal(false);
+      setReviewItem(null);
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || t('orderDetail.reviewError'));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleCancelOrder = async () => {
     if (!cancelReason.trim()) return toast.error('Vui lòng nhập lý do hủy đơn');
@@ -61,11 +95,11 @@ const OrderDetail: React.FC = () => {
   };
 
   const handleContactSupport = async () => {
-    if (!supportIssue.trim()) return toast.error('Vui lòng mô tả vấn đề của bạn');
+    if (!supportIssue.trim()) return toast.error(t('orderDetail.supportValidation'));
     setIsProcessing(true);
     try {
       const res = await supportService.createTicket({
-        subject: `Hỗ trợ đơn hàng #${order.id}`,
+        subject: t('orderDetail.supportSubject', { orderId: order.id }),
         category: supportCategory,
         priority: 'medium',
         message: supportIssue,
@@ -76,10 +110,10 @@ const OrderDetail: React.FC = () => {
       });
       setShowSupportModal(false);
       setSupportIssue('');
-      toast.success('Đã tạo yêu cầu hỗ trợ! Đội ngũ CSKH sẽ liên hệ bạn sớm nhất.');
-      if (res?.data?._id) navigate(`/support/${res.data._id}`);
+      toast.success(t('orderDetail.supportCreateSuccess'));
+      if (res?.data?._id) navigate(`/account/support?ticket=${res.data._id}`);
     } catch (err: any) {
-      toast.error(err.message || 'Không thể gửi yêu cầu hỗ trợ');
+      toast.error(err.message || t('orderDetail.supportCreateError'));
     } finally {
       setIsProcessing(false);
     }
@@ -123,7 +157,7 @@ const OrderDetail: React.FC = () => {
        } else {
            throw new Error(res.message || "Tạo hóa đơn thất bại");
        }
-    } catch (err: any) {
+     } catch {
        toast.warning("Đang mở bản in...");
        setTimeout(() => { window.print(); }, 500);
     } finally {
@@ -153,7 +187,7 @@ const OrderDetail: React.FC = () => {
       <div className="flex flex-col gap-2">
         <Link to="/account/orders" className="text-primary hover:underline text-sm font-semibold flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">arrow_back</span>
-          Trở lại danh sách
+          {t('orderDetail.backToList')}
         </Link>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -167,7 +201,7 @@ const OrderDetail: React.FC = () => {
                     <span className="material-symbols-outlined text-sm">download</span> PDF
                 </button>
                 <button onClick={() => setShowSupportModal(true)} className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-100 transition">
-                    <span className="material-symbols-outlined text-sm">support_agent</span> Liên hệ hỗ trợ
+                  <span className="material-symbols-outlined text-sm">support_agent</span> {t('orderDetail.contactSupport')}
                 </button>
                 {isCancellable && (
                     <button onClick={() => setShowCancelModal(true)} disabled={isProcessing} className="px-4 py-2 bg-white border-2 border-red-400 text-red-500 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-50 transition disabled:opacity-50">
@@ -175,9 +209,14 @@ const OrderDetail: React.FC = () => {
                     </button>
                 )}
                 {!isCancellable && order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && order.status !== 'RETURNED' && (
-                    <button onClick={() => setShowSupportModal(true)} className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-sm font-bold flex items-center gap-2 cursor-help" title="Đơn hàng không thể hủy trực tiếp. Vui lòng liên hệ hỗ trợ.">
-                        <span className="material-symbols-outlined text-sm">block</span> Không thể hủy
-                    </button>
+                  <button onClick={() => setShowSupportModal(true)} className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-sm font-bold flex items-center gap-2 cursor-help" title={t('orderDetail.supportCancelHint')}>
+                    <span className="material-symbols-outlined text-sm">block</span> {t('orderDetail.cannotCancel')}
+                  </button>
+                )}
+                {isDelivered && (
+                  <button onClick={() => navigate('/account/reviews')} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-amber-600 transition">
+                    <span className="material-symbols-outlined text-sm">star</span> {t('orderDetail.reviewProducts')}
+                  </button>
                 )}
                 <button onClick={handleReorder} disabled={isProcessing} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition disabled:opacity-50">
                     <span className="material-symbols-outlined text-sm">shopping_cart</span> Mua lại
@@ -216,7 +255,7 @@ const OrderDetail: React.FC = () => {
                     ))}
                  </div>
                  <div className="mt-6 border-t border-slate-100 pt-4">
-                    <Link to={`/order/track?id=${order.id}`} className="text-primary font-bold text-sm hover:underline">Xem chi tiết hành trình &rarr;</Link>
+                    <Link to={`/order/track?id=${order.id}`} className="text-primary font-bold text-sm hover:underline">{t('orderDetail.viewJourney')}</Link>
                  </div>
              </div>
 
@@ -229,7 +268,14 @@ const OrderDetail: React.FC = () => {
                  <div className="space-y-4">
                      {order.items.map((item, idx) => (
                          <div key={idx} className="flex gap-4 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
-                             <img src={item.product_image || "https://via.placeholder.com/80"} alt={item.product_name} className="w-20 h-20 object-cover rounded-lg border border-slate-100" />
+                             <div className="w-20 h-20 rounded-lg border border-slate-100 overflow-hidden bg-slate-50 shrink-0">
+                               {item.product_image ? (
+                                 <img src={resolveImageUrl(item.product_image)} alt={item.product_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                               ) : null}
+                               <div className={`w-full h-full flex items-center justify-center text-slate-300 ${item.product_image ? 'hidden' : ''}`}>
+                                 <span className="material-symbols-outlined text-2xl">image</span>
+                               </div>
+                             </div>
                              <div className="flex-1 min-w-0">
                            <Link to={`/products/${item.product_id || item.branch_product_id}`} className="font-bold text-slate-900 hover:text-primary truncate block">{item.product_name}</Link>
                            <div className="flex flex-col gap-0.5 mt-1.5 mb-2">
@@ -250,6 +296,21 @@ const OrderDetail: React.FC = () => {
                            <p className="text-sm text-slate-500 mt-1">Đơn giá: {(item.final_price || item.price || 0).toLocaleString('vi-VN')}đ | SL: {item.quantity}</p>
                            {(item as any).is_gift && (
                              <span className="inline-flex text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded mt-1">Quà tặng</span>
+                           )}
+                           {isDelivered && !submittedReviews.has(String(item.product_id || item.branch_product_id)) && (
+                             <button
+                               onClick={() => { setReviewItem(item); setShowReviewModal(true); }}
+                               className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold hover:bg-amber-100 transition"
+                             >
+                               <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                               {t('orderDetail.writeReview')}
+                             </button>
+                           )}
+                           {submittedReviews.has(String(item.product_id || item.branch_product_id)) && (
+                             <span className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-green-600">
+                               <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                               {t('orderDetail.reviewSubmitted')}
+                             </span>
                            )}
                              </div>
                              <div className="text-right">
@@ -274,7 +335,7 @@ const OrderDetail: React.FC = () => {
                         Địa chỉ nhận hàng
                      </h3>
                      {!isCompletedOrCancelled && (
-                         <button onClick={() => setShowEditAddressModal(true)} className="text-sm font-bold text-blue-600 hover:underline">Sửa</button>
+                         <button onClick={() => setShowEditAddressModal(true)} className="text-sm font-bold text-blue-600 hover:underline">{t('common.edit')}</button>
                      )}
                  </div>
                  {order.order_address ? (
@@ -289,7 +350,7 @@ const OrderDetail: React.FC = () => {
                          )}
                      </div>
                  ) : (
-                     <p className="text-sm text-slate-500">Chưa có thông tin địa chỉ</p>
+                     <p className="text-sm text-slate-500">{t('orderDetail.noAddressInfo')}</p>
                  )}
              </div>
 
@@ -301,9 +362,9 @@ const OrderDetail: React.FC = () => {
                  </h3>
                  {order.payment ? (
                      <div className="text-sm space-y-2">
-                         <div className="flex justify-between"><span className="text-slate-500">Phương thức:</span><span className="font-bold">{order.payment.method}</span></div>
-                         <div className="flex justify-between"><span className="text-slate-500">Mã giao dịch:</span><span className="font-bold">{order.payment.transaction_id || 'N/A'}</span></div>
-                         <div className="flex justify-between"><span className="text-slate-500">Trạng thái:</span>
+                         <div className="flex justify-between"><span className="text-slate-500">{t('orderDetail.method')}</span><span className="font-bold">{order.payment.method}</span></div>
+                         <div className="flex justify-between"><span className="text-slate-500">{t('orderDetail.transactionId')}</span><span className="font-bold">{order.payment.transaction_id || 'N/A'}</span></div>
+                         <div className="flex justify-between"><span className="text-slate-500">{t('orderDetail.status')}</span>
                             <span className={`font-bold ${order.payment.status === 'PAID' ? 'text-green-600' : 'text-orange-500'}`}>{order.payment.status}</span>
                          </div>
                      </div>
@@ -314,7 +375,7 @@ const OrderDetail: React.FC = () => {
 
              {/* Price Breakdown */}
              <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-                 <h3 className="font-bold text-lg mb-4">Tóm tắt đơn hàng</h3>
+                 <h3 className="font-bold text-lg mb-4">{t('orderDetail.orderSummary')}</h3>
                  {Array.isArray((order as any).applied_promotions) && (order as any).applied_promotions.length > 0 && (
                    <div className="mb-4 space-y-2">
                      <p className="text-xs font-bold uppercase text-slate-400 tracking-wide">Khuyến mãi áp dụng</p>
@@ -334,15 +395,15 @@ const OrderDetail: React.FC = () => {
                  )}
                  <div className="space-y-3 text-sm border-b border-slate-100 pb-4 mb-4">
                      <div className="flex justify-between text-slate-600">
-                         <span>Tổng tiền hàng:</span>
+                         <span>{t('orderDetail.subTotal')}</span>
                          <span className="font-bold text-slate-900">{Number((order as any).pricing_breakdown?.subtotal ?? order.subtotal ?? 0).toLocaleString('vi-VN')}đ</span>
                      </div>
                      <div className="flex justify-between text-slate-600">
-                         <span>Phí vận chuyển:</span>
+                         <span>{t('orderDetail.shippingFee')}</span>
                          <span className="font-bold text-slate-900">{Number((order as any).pricing_breakdown?.shipping_fee ?? order.shipping_fee ?? 0).toLocaleString('vi-VN')}đ</span>
                      </div>
                      <div className="flex justify-between text-slate-600">
-                         <span>Giảm giá:</span>
+                         <span>{t('orderDetail.discount')}</span>
                        <span className="font-bold text-green-600">-{Number(((order as any).pricing_breakdown?.promotion_discount ?? 0) + ((order as any).pricing_breakdown?.coupon_discount ?? 0) || order.discount_amount || 0).toLocaleString('vi-VN')}đ</span>
                      </div>
                      {(order as any).pricing_breakdown?.free_shipping_applied && (
@@ -352,12 +413,12 @@ const OrderDetail: React.FC = () => {
                        </div>
                      )}
                      <div className="flex justify-between text-slate-600">
-                       <span>Điểm tích lũy:</span>
+                       <span>{t('orderDetail.earnedPoints')}</span>
                        <span className="font-bold text-primary">+{Number((order as any).pricing_breakdown?.points_earned ?? order.points_earned ?? 0)} L.Point</span>
                      </div>
                  </div>
                  <div className="flex justify-between items-center">
-                     <span className="font-bold text-lg">Tổng cộng:</span>
+                     <span className="font-bold text-lg">{t('orderDetail.total')}</span>
                      <span className="font-bold text-2xl text-primary">{Number(order.total_amount || 0).toLocaleString('vi-VN')}đ</span>
                  </div>
              </div>
@@ -371,7 +432,7 @@ const OrderDetail: React.FC = () => {
                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto">
                    <span className="material-symbols-outlined text-2xl">warning</span>
                </div>
-               <h3 className="text-xl font-bold text-center mb-2">Xác nhận hủy đơn</h3>
+               <h3 className="text-xl font-bold text-center mb-2">{t('orderDetail.confirmCancelTitle')}</h3>
                <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{order.id} sẽ bị hủy và không thể hoàn tác.</p>
                <div className="mb-4">
                  <label className="block text-sm font-bold text-slate-700 mb-1">Lý do hủy đơn <span className="text-red-500">*</span></label>
@@ -400,35 +461,84 @@ const OrderDetail: React.FC = () => {
                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4 mx-auto">
                    <span className="material-symbols-outlined text-2xl">support_agent</span>
                </div>
-               <h3 className="text-xl font-bold text-center mb-2">Liên hệ hỗ trợ</h3>
-               <p className="text-center text-slate-500 mb-4 text-sm">Đơn hàng #{order.id} • Trạng thái: {order.status}</p>
+               <h3 className="text-xl font-bold text-center mb-2">{t('orderDetail.supportModalTitle')}</h3>
+               <p className="text-center text-slate-500 mb-4 text-sm">{t('orderDetail.supportModalDesc', { orderId: order.id, status: order.status })}</p>
                <div className="space-y-4">
                  <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-1">Loại vấn đề</label>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">{t('orderDetail.supportCategory')}</label>
                    <select value={supportCategory} onChange={e => setSupportCategory(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
-                     <option value="order_issue">Vấn đề về đơn hàng</option>
-                     <option value="shipping">Giao hàng / Vận chuyển</option>
-                     <option value="payment">Thanh toán / Hoàn tiền</option>
-                     <option value="product_quality">Chất lượng sản phẩm</option>
-                     <option value="cancel_request">Yêu cầu hủy đơn</option>
-                     <option value="other">Khác</option>
+                     <option value="general">{t('support.cat_general')}</option>
+                     <option value="missing_item">{t('support.cat_missing_item')}</option>
+                     <option value="damaged_product">{t('support.cat_damaged_product')}</option>
+                     <option value="payment_issue">{t('support.cat_payment_issue')}</option>
+                     <option value="delivery_delay">{t('support.cat_delivery_delay')}</option>
+                     <option value="refund_request">{t('support.cat_refund_request')}</option>
                    </select>
                  </div>
                  <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-1">Mô tả vấn đề <span className="text-red-500">*</span></label>
+                   <label className="block text-sm font-bold text-slate-700 mb-1">{t('orderDetail.supportIssueLabel')} <span className="text-red-500">*</span></label>
                    <textarea 
                      value={supportIssue} 
                      onChange={e => setSupportIssue(e.target.value)} 
-                     placeholder="Mô tả chi tiết vấn đề bạn đang gặp..." 
+                     placeholder={t('orderDetail.supportIssuePlaceholder')} 
                      className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-200 outline-none resize-none" 
                      rows={4} 
                    />
                  </div>
                </div>
                <div className="flex gap-3 mt-6">
-                   <button onClick={() => { setShowSupportModal(false); setSupportIssue(''); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Đóng</button>
+                   <button onClick={() => { setShowSupportModal(false); setSupportIssue(''); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">{t('common.close')}</button>
                    <button onClick={handleContactSupport} disabled={isProcessing || !supportIssue.trim()} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition disabled:opacity-50">
-                       {isProcessing ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                       {isProcessing ? t('orderDetail.supportSending') : t('orderDetail.supportSend')}
+                   </button>
+               </div>
+               <div className="mt-4 text-center">
+                 <Link to="/account/support" className="text-xs font-semibold text-primary hover:underline">
+                   {t('orderDetail.supportGoToCenter')}
+                 </Link>
+               </div>
+           </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && reviewItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+               <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-4 mx-auto">
+                   <span className="material-symbols-outlined text-2xl">rate_review</span>
+               </div>
+               <h3 className="text-xl font-bold text-center mb-2">{t('orderDetail.reviewModalTitle')}</h3>
+               <p className="text-center text-slate-500 mb-4 text-sm line-clamp-2">{reviewItem.product_name}</p>
+               
+               {/* Star Rating */}
+               <div className="flex justify-center gap-1 mb-4">
+                 {[1, 2, 3, 4, 5].map(star => (
+                   <button
+                     key={star}
+                     onClick={() => setReviewRating(star)}
+                     className="transition-transform hover:scale-110"
+                   >
+                     <span className={`material-symbols-outlined text-3xl ${star <= reviewRating ? 'text-amber-400 fill-1' : 'text-slate-300'}`}>star</span>
+                   </button>
+                 ))}
+               </div>
+               <p className="text-center text-xs text-slate-400 mb-4">{reviewRating}/5 {t('orderDetail.stars')}</p>
+               
+               <div className="mb-4">
+                 <label className="block text-sm font-bold text-slate-700 mb-1">{t('orderDetail.reviewCommentLabel')} <span className="text-red-500">*</span></label>
+                 <textarea 
+                   value={reviewComment} 
+                   onChange={e => setReviewComment(e.target.value)} 
+                   placeholder={t('orderDetail.reviewPlaceholder')} 
+                   className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none resize-none" 
+                   rows={4} 
+                 />
+               </div>
+               <div className="flex gap-3">
+                   <button onClick={() => { setShowReviewModal(false); setReviewItem(null); setReviewComment(''); setReviewRating(5); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">{t('common.close')}</button>
+                   <button onClick={handleSubmitReview} disabled={isProcessing || !reviewComment.trim()} className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition disabled:opacity-50">
+                       {isProcessing ? t('orderDetail.reviewSending') : t('orderDetail.reviewSubmit')}
                    </button>
                </div>
            </div>

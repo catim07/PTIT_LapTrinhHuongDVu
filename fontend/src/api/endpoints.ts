@@ -235,6 +235,7 @@ export const endpoints = {
   uploads: {
     promotionImage: '/uploads/promotion-image',
     reviewImages: '/uploads/review-images',
+    evidenceImages: '/uploads/evidence-images',
   },
 
   wishlist: {
@@ -361,6 +362,8 @@ export const endpoints = {
     addComment: (id: string | number) => `/events/${id}/comments`,
     related: (id: string | number) => `/events/${id}/related`,
     postDetail: (id: string | number) => `/events/${id}/detail`,
+    like: (id: string | number) => `/events/${id}/like`,
+    likeComment: (postId: string | number, commentId: string | number) => `/events/${postId}/comments/${commentId}/like`,
   },
 
   // ═══════════════════════════════════════════════

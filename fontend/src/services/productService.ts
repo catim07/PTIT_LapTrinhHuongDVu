@@ -115,7 +115,7 @@ export const productService = {
       if (params?.category_id && !normalizedParams.category) normalizedParams.category = params.category_id;
       const res = await httpClient.get(endpoints.products.search, { params: normalizedParams });
       return {
-        data: normalizeArray(res.data),
+        data: normalizeProducts(normalizeArray(res.data)),
         pagination: res.data?.pagination || res.data?.data?.pagination || null
       };
     } catch { return { data: [], pagination: null }; }

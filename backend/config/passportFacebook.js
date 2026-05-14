@@ -62,6 +62,7 @@ export const configurePassportFacebook = () => {
               permissions: [],
               signup_method: 'facebook',
               login_provider: 'facebook',
+              authProviders: ['facebook'],
               email_verified: Boolean(profileEmail),
               social_providers: [{ provider: 'facebook', provider_user_id: facebookId }],
             });
@@ -77,6 +78,12 @@ export const configurePassportFacebook = () => {
             if (!Array.isArray(user.social_providers)) user.social_providers = [];
             if (!user.social_providers.some((p) => p.provider === 'facebook')) {
               user.social_providers.push({ provider: 'facebook', provider_user_id: facebookId });
+            }
+
+            // Add 'facebook' to authProviders if not present
+            if (!Array.isArray(user.authProviders)) user.authProviders = [];
+            if (!user.authProviders.includes('facebook')) {
+              user.authProviders.push('facebook');
             }
 
             if (profileEmail && (!user.email || normalizeEmail(user.email) === profileEmail)) {
